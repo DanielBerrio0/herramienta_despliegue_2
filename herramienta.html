@@ -1,0 +1,2412 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Herramienta de Despliegue</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background:
+        linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)),
+        url("https://raw.githubusercontent.com/DanielBerrio0/herramienta_despliegue/main/img/ISO_optimized.png")
+        no-repeat center center fixed;
+      background-size: cover;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+
+    .autor {
+    color: white !important;
+    text-align: center;
+    }
+
+    .login-container {
+      max-width: 420px;
+      margin: 80px auto;
+      padding: 30px;
+      background: rgba(255, 255, 255, 0.90);
+      backdrop-filter: blur(6px);
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      color: black;
+    }
+
+    .btn-gradient {
+      background: linear-gradient(to right, blue, red);
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: bold;
+      transition: 0.3s;
+      width: 100%;
+    }
+
+    .btn-gradient:hover {
+      opacity: 0.9;
+      transform: scale(1.05);
+    }
+
+    .checklist {
+      text-align: left;
+      max-width: 700px;
+      margin: auto;
+    }
+
+    .checklist h5 {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="contenedor" class="container"></div>
+
+  <script>
+    const contenedor = document.getElementById("contenedor");
+
+    // Pantalla de login
+function mostrarLogin() {
+  contenedor.innerHTML = `
+    <div class="login-container">
+      <h3 class="text-center mb-4 fw-bold">Iniciar Sesión</h3>
+      <form onsubmit="event.preventDefault(); verificarLogin();">
+        <div class="mb-3">
+          <label for="usuario" class="form-label">Usuario</label>
+          <input type="text" class="form-control" id="usuario" required>
+        </div>
+        <div class="mb-3">
+          <label for="contrasena" class="form-label">Contraseña</label>
+          <input type="password" class="form-control" id="contrasena" required>
+        </div>
+        <button type="submit" class="btn-gradient w-100">Ingresar</button>
+      </form>
+    </div>
+  `;
+}
+
+
+async function verificarLogin() {
+  const username = document.getElementById("usuario").value;
+  const password = document.getElementById("contrasena").value;
+
+  if (!username || !password) {
+    alert("Por favor completa ambos campos");
+    return;
+  }
+
+  try {
+    const response = await fetch("http://localhost:3000/api/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      alert("Inicio de sesión exitoso");
+      mostrarNormas();
+    } else {
+      alert("Usuario o contraseña incorrectos");
+    }
+
+  } catch (error) {
+    console.error("Error en login:", error);
+    alert("Error conectando con el servidor. Asegúrate de que esté iniciado.");
+  }
+}
+
+
+// 3️⃣ FUNCIONES PARA GUARDAR / CARGAR CHECKLIST (aquí va lo de localStorage)
+// ---------------------------
+const KEY_AUDITOR_ESTADOS = "auditor_estados_v1";
+const KEY_AUDITOR_OBS = "auditor_obs_v1";
+
+function cargarAuditorEstados() {
+  try { return JSON.parse(localStorage.getItem(KEY_AUDITOR_ESTADOS)) || {}; } catch { return {}; }
+}
+
+function guardarAuditorEstados(obj) {
+  localStorage.setItem(KEY_AUDITOR_ESTADOS, JSON.stringify(obj));
+}
+
+function cargarAuditorObs() {
+  try { return JSON.parse(localStorage.getItem(KEY_AUDITOR_OBS)) || {}; } catch { return {}; }
+}
+
+function guardarAuditorObs(obj) {
+  localStorage.setItem(KEY_AUDITOR_OBS, JSON.stringify(obj));
+}
+
+
+// Nueva pantalla después del login
+function mostrarNormas() {
+  contenedor.innerHTML = `
+    <div class="text-center mt-5">
+      <h2 class="fw-bold">Seleccione la norma a aplicar</h2>
+      <p class="mb-4">Elija el sistema de gestión con el que desea trabajar:</p>
+
+      <div class="d-grid gap-3 col-6 mx-auto">
+        <button class="btn btn-primary btn-lg" onclick="mostrarResponsables()">ISO 9001 - Sistema de Gestión de la Calidad</button>
+        <button class="btn btn-secondary btn-lg" onclick="mostrarISO27001()">ISO 27001 - Seguridad de la Información</button>
+      </div>
+
+      <div class="text-center mt-4 small text-muted autor">Diseñado por RPM</div>
+    </div>
+  `;
+}
+
+
+function mostrarISO27001() {
+  contenedor.innerHTML = `
+    <div class="text-center mt-5">
+      <h2 class="fw-bold">Módulo ISO 27001</h2>
+      <p class="mb-3">Sistema de Gestión de Seguridad de la Información (SGSI)</p>
+    </div>
+
+    <div class="d-grid gap-3 col-6 mx-auto">
+      <button class="btn btn-primary" onclick="mostrarEvidencias()">Ver evidencias</button>
+      <button class="btn btn-primary" onclick="mostrarRegistro27001()">Ir al registro</button>
+    </div>
+
+    <div class="text-center mt-3">
+      <button class="btn btn-secondary" onclick="mostrarNormas()">Volver</button>
+    </div>
+
+    <div class="text-center mt-4 small text-muted autor">Diseñado por RPM</div>
+
+  `;
+}
+
+
+// -------------------- Persistencia --------------------
+function cargarEvidencias27001() {
+  const raw = localStorage.getItem("evidencias27001");
+  return raw ? JSON.parse(raw) : [];
+}
+function guardarEvidencias27001(list) {
+  localStorage.setItem("evidencias27001", JSON.stringify(list));
+}
+
+// -------------------- Mostrar módulo principal --------------------
+function mostrarEvidencias() {
+  const evidencias = cargarEvidencias27001();
+
+  contenedor.innerHTML = `
+    <div class="mt-5">
+      <h2 class="fw-bold text-center">Registro general de Evidencias - ISO 27001</h2>
+      <p class="text-center mb-4">Sube y gestiona documentos de validación, pruebas o auditorías del SGSI</p>
+
+      <!-- Formulario de carga -->
+      <div class="card col-10 col-lg-8 mx-auto mb-4">
+        <div class="card-body">
+          <div class="row g-3 align-items-end">
+
+            <div class="col-md-4">
+              <label class="form-label">Archivo</label>
+              <input type="file" id="archivoEvid" class="form-control" />
+            </div>
+
+            <div class="col-md-5">
+              <label class="form-label">Nombre visible</label>
+              <input type="text" id="nombreVisibleEvid" class="form-control" placeholder="Ej: Evidencia prueba de Backup">
+            </div>
+
+            <div class="col-md-3">
+              <label class="form-label">Versión</label>
+              <input type="text" id="versionEvid" class="form-control" placeholder="1.0">
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Observaciones</label>
+              <textarea id="descEvid" class="form-control" rows="2" placeholder="Descripción de la evidencia..."></textarea>
+            </div>
+
+            <div class="col-12 text-end">
+              <button class="btn btn-primary" id="btnAgregarEvid">Agregar evidencia</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla de evidencias -->
+      <div class="table-responsive col-12 col-lg-10 mx-auto">
+        <table class="table table-bordered align-middle" id="tablaEvid">
+          <thead class="table-primary text-center">
+            <tr>
+              <th style="min-width:220px;">Nombre / Archivo</th>
+              <th>Versión</th>
+              <th>Estado</th>
+              <th>Aprobación</th>
+              <th style="min-width:220px;">Observaciones</th>
+              <th>Fecha / Hora</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${evidencias.map((e, idx) => filaEvidHTML(e, idx)).join("")}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="text-center mt-3">
+        <button class="btn btn-secondary me-2" onclick="mostrarISO27001()">Volver</button>
+        <button class="btn btn-outline-primary" onclick="mostrarDashboard27001()">Volver al Dashboard</button>
+      </div>
+
+      <div class="text-center mt-4 small text-muted autor">Diseñado por RPM</div>
+
+    </div>
+  `;
+
+  document.getElementById("btnAgregarEvid").addEventListener("click", onAgregarEvid);
+  document.querySelector("#tablaEvid tbody").addEventListener("change", onTablaEvidChange);
+  document.querySelector("#tablaEvid tbody").addEventListener("click", onTablaEvidClick);
+}
+
+// -------------------- Render fila --------------------
+function filaEvidHTML(e, idx) {
+  return `
+    <tr data-index="${idx}">
+      <td>${e.url ? `<a href="${e.url}" target="_blank">${escapeHTML(e.nombre)}</a>` : escapeHTML(e.nombre)}</td>
+      <td class="text-center">${escapeHTML(e.version || "")}</td>
+      <td>
+        <select class="form-select sel-estado">
+          <option value="Borrador" ${e.estado === "Borrador" ? "selected" : ""}>Borrador</option>
+          <option value="En revisión" ${e.estado === "En revisión" ? "selected" : ""}>En revisión</option>
+          <option value="Aprobado" ${e.estado === "Aprobado" ? "selected" : ""}>Aprobado</option>
+        </select>
+      </td>
+      <td>
+        <select class="form-select sel-aprob">
+          <option value="No aprobado" ${e.aprobado === "No aprobado" ? "selected" : ""}>No aprobado</option>
+          <option value="Aprobado" ${e.aprobado === "Aprobado" ? "selected" : ""}>Aprobado</option>
+        </select>
+      </td>
+      <td><input type="text" class="form-control inp-obs" value="${escapeHTML(e.obs || "")}" placeholder="Observaciones..."></td>
+      <td class="text-center">
+        <div>${escapeHTML(e.fecha || "")}</div>
+        <div class="small text-muted">${escapeHTML(e.hora || "")}</div>
+      </td>
+      <td class="text-center">
+        <button class="btn btn-sm btn-outline-danger btn-del">Eliminar</button>
+      </td>
+    </tr>
+  `;
+}
+
+// -------------------- Añadir evidencia --------------------
+function onAgregarEvid() {
+  const fileInput = document.getElementById("archivoEvid");
+  const nombreVisible = document.getElementById("nombreVisibleEvid").value.trim();
+  const version = document.getElementById("versionEvid").value.trim();
+  const descripcion = document.getElementById("descEvid").value.trim();
+
+  if (!fileInput.files || fileInput.files.length === 0) {
+    alert("Seleccione un archivo para continuar.");
+    return;
+  }
+
+  const file = fileInput.files[0];
+  const url = URL.createObjectURL(file);
+
+  const ahora = new Date();
+  const fecha = ahora.toLocaleDateString("es-CO");
+  const hora = ahora.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", hour12: true });
+
+  const doc = {
+    nombre: nombreVisible || file.name,
+    url,
+    version: version || "1.0",
+    estado: "Borrador",
+    aprobado: "No aprobado",
+    obs: descripcion || "",
+    fecha,
+    hora
+  };
+
+  const lista = cargarEvidencias27001();
+  lista.push(doc);
+  guardarEvidencias27001(lista);
+
+  const tbody = document.querySelector("#tablaEvid tbody");
+  tbody.insertAdjacentHTML("beforeend", filaEvidHTML(doc, lista.length - 1));
+
+  fileInput.value = "";
+  document.getElementById("nombreVisibleEvid").value = "";
+  document.getElementById("versionEvid").value = "";
+  document.getElementById("descEvid").value = "";
+}
+
+// -------------------- Editar campos en tabla --------------------
+function onTablaEvidChange(e) {
+  const tr = e.target.closest("tr[data-index]");
+  if (!tr) return;
+
+  const idx = parseInt(tr.getAttribute("data-index"), 10);
+  if (Number.isNaN(idx)) return;
+
+  const lista = cargarEvidencias27001();
+
+  if (e.target.classList.contains("sel-estado")) {
+    lista[idx].estado = e.target.value;
+  }
+  if (e.target.classList.contains("sel-aprob")) {
+    lista[idx].aprobado = e.target.value;
+  }
+  if (e.target.classList.contains("inp-obs")) {
+    lista[idx].obs = e.target.value;
+  }
+
+  guardarEvidencias27001(lista);
+}
+
+// -------------------- Eliminar evidencia --------------------
+function onTablaEvidClick(e) {
+  if (!e.target.classList.contains("btn-del")) return;
+
+  const tr = e.target.closest("tr[data-index]");
+  if (!tr) return;
+
+  const idx = parseInt(tr.getAttribute("data-index"), 10);
+  if (Number.isNaN(idx)) return;
+
+  const lista = cargarEvidencias27001();
+
+  if (!confirm("¿Eliminar este documento?")) return;
+
+  if (lista[idx] && lista[idx].url) {
+    try { URL.revokeObjectURL(lista[idx].url); } catch {}
+  }
+
+  lista.splice(idx, 1);
+  guardarEvidencias27001(lista);
+
+  mostrarEvidencias();
+}
+
+// -------------------- Util --------------------
+function escapeHTML(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+
+// Si aun no la tienes, agrega esta (al enviar abre el checklist)
+function mostrarRegistro27001() {
+  contenedor.innerHTML = `
+    <div class="mt-5">
+      <h2 class="fw-bold text-center">Registro del SGSI (ISO 27001)</h2>
+      <p class="text-center mb-4">Complete los datos antes de continuar al checklist:</p>
+
+      <form id="formRegistro27001" class="col-10 col-lg-8 mx-auto">
+        <div class="row g-3">
+          <div class="col-md-6"><label class="form-label">Razon social</label><input id="rz27001" type="text" class="form-control" required></div>
+          <div class="col-md-6"><label class="form-label">NIT</label><input id="nit27001" type="text" class="form-control" required></div>
+          <div class="col-md-6"><label class="form-label">Representante legal</label><input id="rep27001" type="text" class="form-control" required></div>
+          <div class="col-md-6"><label class="form-label">Sector economico</label><input id="sec27001" type="text" class="form-control" required></div>
+          <div class="col-md-6"><label class="form-label">Tipo de empresa</label><input id="tipo27001" type="text" class="form-control" required></div>
+          <div class="col-md-6"><label class="form-label">Direccion</label><input id="dir27001" type="text" class="form-control" required></div>
+          <div class="col-md-6"><label class="form-label">Telefono</label><input id="tel27001" type="tel" class="form-control" required></div>
+          <div class="col-md-6"><label class="form-label">Numero de empleados</label><input id="emp27001" type="number" class="form-control" required></div>
+          <div class="col-md-6"><label class="form-label">Email</label><input id="mail27001" type="email" class="form-control" required></div>
+          <div class="col-md-6"><label class="form-label">Sitio web</label><input id="web27001" type="url" class="form-control"></div>
+          <div class="col-md-4"><label class="form-label">Facebook</label><input id="fb27001" type="url" class="form-control"></div>
+          <div class="col-md-4"><label class="form-label">Instagram</label><input id="ig27001" type="url" class="form-control"></div>
+          <div class="col-md-4"><label class="form-label">TikTok</label><input id="tk27001" type="url" class="form-control"></div>
+        </div>
+
+        <div class="text-center mt-4 d-flex justify-content-center gap-2">
+          <button type="submit" class="btn btn-primary">Registrar y continuar</button>
+          <button type="button" class="btn btn-outline-secondary" onclick="mostrarISO27001()">Volver</button>
+        </div>
+      </form>
+
+      <div class="text-center mt-4 small text-muted">Diseñado por PRM</div>
+    </div>
+  `;
+
+  // Precarga opcional desde localStorage
+  try {
+    const prev = JSON.parse(localStorage.getItem("iso27001_registro")) || null;
+    if (prev) {
+      const map = {
+        rz27001: "razon_social", nit27001: "nit", rep27001: "representante", sec27001: "sector",
+        tipo27001: "tipo", dir27001: "direccion", tel27001: "telefono", emp27001: "empleados",
+        mail27001: "email", web27001: "web", fb27001: "facebook", ig27001: "instagram", tk27001: "tiktok"
+      };
+      Object.keys(map).forEach(function(id){
+        if (typeof prev[map[id]] !== "undefined") {
+          const el = document.getElementById(id);
+          if (el) el.value = String(prev[map[id]]);
+        }
+      });
+    }
+  } catch(e){ /* noop */ }
+
+  // Evento submit para enviar al backend
+  document.getElementById("formRegistro27001").addEventListener("submit", async function(e){
+    e.preventDefault();
+
+    const data = {
+      razon_social: document.getElementById("rz27001").value.trim().substring(0,150),
+      nit: document.getElementById("nit27001").value.trim().substring(0,30),
+      representante: document.getElementById("rep27001").value.trim().substring(0,120),
+      sector: document.getElementById("sec27001").value.trim().substring(0,120),
+      tipo: document.getElementById("tipo27001").value.trim().substring(0,100),
+      direccion: document.getElementById("dir27001").value.trim().substring(0,200),
+      telefono: document.getElementById("tel27001").value.trim().substring(0,30),
+      empleados: parseInt(document.getElementById("emp27001").value.trim()) || 0,
+      email: document.getElementById("mail27001").value.trim().substring(0,120),
+      web: document.getElementById("web27001").value.trim().substring(0,200),
+      facebook: document.getElementById("fb27001").value.trim().substring(0,200),
+      instagram: document.getElementById("ig27001").value.trim().substring(0,200),
+      tiktok: document.getElementById("tk27001").value.trim().substring(0,200)
+    };
+
+    try {
+      const response = await fetch('http://localhost:3000/api/27001/registro27001', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        localStorage.setItem("iso27001_registro", JSON.stringify(data)); // respaldo local
+        mostrarChecklist27001();
+      } else {
+        alert('No se pudo guardar el registro: ' + result.message);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error en la comunicación con el servidor.');
+    }
+  });
+}
+
+
+function mostrarChecklist27001() {
+  // claves de storage
+  const KEY_EST = "iso27001_estados_v1";
+  const KEY_OBS = "iso27001_obs_v1";
+
+  // helpers de storage
+  const cargarEstados = () => { try { return JSON.parse(localStorage.getItem(KEY_EST)) || {}; } catch(e){ return {}; } };
+  const guardarEstados = (o) => localStorage.setItem(KEY_EST, JSON.stringify(o));
+  const cargarObs = () => { try { return JSON.parse(localStorage.getItem(KEY_OBS)) || {}; } catch(e){ return {}; } };
+  const guardarObs = (o) => localStorage.setItem(KEY_OBS, JSON.stringify(o));
+
+  // helpers de filas
+  const capRow = (titulo) =>
+    '<tr class="table-secondary"><th colspan="5" class="text-start fw-bold">' + titulo + '</th></tr>';
+
+  const itemRow = (cap, item, texto) =>
+    '<tr>' +
+      '<td class="text-center">'+cap+'</td>' +
+      '<td class="text-center">'+item+'</td>' +
+      '<td>'+texto+'</td>' +
+      '<td>' +
+        '<div class="d-flex align-items-center gap-2">' +
+          '<select class="form-select estado-select" data-item="'+item+'">' +
+            '<option value="">Seleccione...</option>' +
+            '<option value="Cumple">Cumple</option>' +
+            '<option value="En proceso">En proceso</option>' +
+            '<option value="No cumple">No cumple</option>' +
+          '</select>' +
+          '<span class="estado-indicador" style="width:20px;height:20px;border-radius:50%;display:inline-block;border:1px solid #ccc;"></span>' +
+        '</div>' +
+      '</td>' +
+      '<td><input type="text" class="form-control obs-input" data-item="'+item+'" placeholder="Escriba observaciones..."></td>' +
+    '</tr>';
+
+
+let rowsHtml = "";
+
+// -------------------- ORGANIZACIONAL (A.5) - 37 controles --------------------
+rowsHtml += capRow("Anexo A - Controles Organizacionales (A.5)");
+
+rowsHtml += itemRow("A.5","A.5.1","Política de seguridad de la información (políticas y directrices).");
+rowsHtml += itemRow("A.5","A.5.2","Roles y responsabilidades de seguridad de la información.");
+rowsHtml += itemRow("A.5","A.5.3","Organización interna: gobierno de la seguridad de la información.");
+rowsHtml += itemRow("A.5","A.5.4","Colaboración con partes externas y relaciones con proveedores.");
+rowsHtml += itemRow("A.5","A.5.5","Gestión de activos: identificación y clasificación de activos.");
+rowsHtml += itemRow("A.5","A.5.6","Propiedad de los activos y responsabilidades.");
+rowsHtml += itemRow("A.5","A.5.7","Inventario de activos.");
+rowsHtml += itemRow("A.5","A.5.8","Uso aceptable de los activos.");
+rowsHtml += itemRow("A.5","A.5.9","Protección de la información en registros.");
+rowsHtml += itemRow("A.5","A.5.10","Gestión de la propiedad intelectual y derechos asociados.");
+rowsHtml += itemRow("A.5","A.5.11","Identificación de requisitos legales, reglamentarios y contractuales.");
+rowsHtml += itemRow("A.5","A.5.12","Cumplimiento de obligaciones legales y contractuales.");
+rowsHtml += itemRow("A.5","A.5.13","Protección de la privacidad y datos personales (PII).");
+rowsHtml += itemRow("A.5","A.5.14","Evaluación de cumplimiento y revisiones independientes.");
+rowsHtml += itemRow("A.5","A.5.15","Controles de gestión de proveedores y servicios externalizados.");
+rowsHtml += itemRow("A.5","A.5.16","Gestión del ciclo de vida de los proveedores.");
+rowsHtml += itemRow("A.5","A.5.17","Gestión del servicio del proveedor: acuerdos y SLAs de seguridad.");
+rowsHtml += itemRow("A.5","A.5.18","Control de cambios en servicios de proveedores.");
+rowsHtml += itemRow("A.5","A.5.19","Monitoreo y revisión de servicios de proveedores.");
+rowsHtml += itemRow("A.5","A.5.20","Identificación y gestión de activos compartidos con terceros.");
+rowsHtml += itemRow("A.5","A.5.21","Protección durante interrupciones y recuperación (resiliencia).");
+rowsHtml += itemRow("A.5","A.5.22","Planificación y preparación para incidentes de seguridad de la información.");
+rowsHtml += itemRow("A.5","A.5.23","Respuesta a incidentes y gestión de eventos de seguridad.");
+rowsHtml += itemRow("A.5","A.5.24","Aprendizaje y mejora desde incidentes de seguridad.");
+rowsHtml += itemRow("A.5","A.5.25","Recopilación y conservación de evidencias relacionadas con incidentes.");
+rowsHtml += itemRow("A.5","A.5.26","Identificación de necesidades de continuidad y preparación del ICT para continuidad.");
+rowsHtml += itemRow("A.5","A.5.27","Disponibilidad y protección de registros.");
+rowsHtml += itemRow("A.5","A.5.28","Protección de la información en situaciones de interrupción operativa.");
+rowsHtml += itemRow("A.5","A.5.29","Prácticas y procedimientos documentados de operación.");
+rowsHtml += itemRow("A.5","A.5.30","Control documental y gestión de la información documentada del SGSI.");
+rowsHtml += itemRow("A.5","A.5.31","Revisión independiente de seguridad de la información (auditorías externas/terceros).");
+rowsHtml += itemRow("A.5","A.5.32","Cumplimiento con políticas y normas internas de seguridad de la información.");
+rowsHtml += itemRow("A.5","A.5.33","Protección frente a amenazas legales e intelectuales relacionadas con la información.");
+rowsHtml += itemRow("A.5","A.5.34","Gestión de licencias y cumplimiento de software.");
+rowsHtml += itemRow("A.5","A.5.35","Registro y tratamiento de requisitos contractuales y regulatorios.");
+
+// -------------------- PERSONAS (A.6) - 8 controles --------------------
+rowsHtml += capRow("Anexo A - Controles de Personas (A.6)");
+
+rowsHtml += itemRow("A.6","A.6.1","Selección y evaluación previa (screening) del personal.");
+rowsHtml += itemRow("A.6","A.6.2","Términos y condiciones de empleo con temas de seguridad.");
+rowsHtml += itemRow("A.6","A.6.3","Concienciación, formación y capacitación en seguridad de la información.");
+rowsHtml += itemRow("A.6","A.6.4","Procesos disciplinarios relacionados con incumplimientos de seguridad.");
+rowsHtml += itemRow("A.6","A.6.5","Responsabilidades tras la terminación o cambio de empleo.");
+rowsHtml += itemRow("A.6","A.6.6","Acuerdos de confidencialidad y protección de la información.");
+rowsHtml += itemRow("A.6","A.6.7","Trabajo remoto y uso seguro de entornos fuera de la oficina (remote working).");
+rowsHtml += itemRow("A.6","A.6.8","Gestión de recursos humanos para soportar el SGSI.");
+
+// -------------------- FÍSICOS (A.7) - 14 controles --------------------
+rowsHtml += capRow("Anexo A - Controles Físicos (A.7)");
+
+rowsHtml += itemRow("A.7","A.7.1","Perímetro de seguridad física y control de accesos a instalaciones.");
+rowsHtml += itemRow("A.7","A.7.2","Controles de entrada física y barreras de acceso.");
+rowsHtml += itemRow("A.7","A.7.3","Seguridad de oficinas, salas y otras instalaciones.");
+rowsHtml += itemRow("A.7","A.7.4","Monitorización física y CCTV (cuando aplique).");
+rowsHtml += itemRow("A.7","A.7.5","Protección contra amenazas físicas y ambientales.");
+rowsHtml += itemRow("A.7","A.7.6","Operación en áreas seguras y control de acceso privilegiado físico.");
+rowsHtml += itemRow("A.7","A.7.7","Política de escritorio limpio y pantalla limpia (clear desk & clear screen).");
+rowsHtml += itemRow("A.7","A.7.8","Ubicación y protección del equipo (equipment siting).");
+rowsHtml += itemRow("A.7","A.7.9","Protección de activos fuera de las instalaciones (off-premises).");
+rowsHtml += itemRow("A.7","A.7.10","Gestión segura de soportes y medios de almacenamiento (storage media).");
+rowsHtml += itemRow("A.7","A.7.11","Suministros y servicios (utilities) que soportan los sistemas de información.");
+rowsHtml += itemRow("A.7","A.7.12","Seguridad de cableado y conexiones físicas críticas.");
+rowsHtml += itemRow("A.7","A.7.13","Mantenimiento seguro de equipos.");
+rowsHtml += itemRow("A.7","A.7.14","Baja, reciclaje y disposición segura de equipos y medios.");
+
+// -------------------- TECNOLÓGICOS (A.8) - 34 controles --------------------
+rowsHtml += capRow("Anexo A - Controles Tecnológicos (A.8)");
+
+rowsHtml += itemRow("A.8","A.8.1","Dispositivos endpoint y gestión segura de dispositivos de usuario.");
+rowsHtml += itemRow("A.8","A.8.2","Gestión de derechos de acceso privilegiado (privileged access).");
+rowsHtml += itemRow("A.8","A.8.3","Restricción y control de acceso a la información y servicios.");
+rowsHtml += itemRow("A.8","A.8.4","Control de acceso al código fuente y repositorios.");
+rowsHtml += itemRow("A.8","A.8.5","Autenticación y gestión de identidades seguras (MFA, políticas de contraseñas).");
+rowsHtml += itemRow("A.8","A.8.6","Gestión de la capacidad y desempeño de sistemas (capacity management).");
+rowsHtml += itemRow("A.8","A.8.7","Protección contra software malicioso (antimalware).");
+rowsHtml += itemRow("A.8","A.8.8","Gestión de vulnerabilidades técnicas (parches y CVEs).");
+rowsHtml += itemRow("A.8","A.8.9","Gestión de configuraciones seguras (configuration management).");
+rowsHtml += itemRow("A.8","A.8.10","Eliminación segura de información y borrado (information deletion).");
+rowsHtml += itemRow("A.8","A.8.11","Enmascaramiento y anonimización de datos (data masking).");
+rowsHtml += itemRow("A.8","A.8.12","Prevención de fuga de datos (DLP).");
+rowsHtml += itemRow("A.8","A.8.13","Copia de seguridad y recuperación de la información (backup).");
+rowsHtml += itemRow("A.8","A.8.14","Redundancia y alta disponibilidad de instalaciones de procesamiento.");
+rowsHtml += itemRow("A.8","A.8.15","Registro de eventos (logging) y retención de logs.");
+rowsHtml += itemRow("A.8","A.8.16","Monitorización de actividades y telemetría de seguridad.");
+rowsHtml += itemRow("A.8","A.8.17","Sincronización de relojes y time-stamping (clock sync).");
+rowsHtml += itemRow("A.8","A.8.18","Gestión de control de cambios en entornos productivos.");
+rowsHtml += itemRow("A.8","A.8.19","Protección de comunicaciones y transferencia de información.");
+rowsHtml += itemRow("A.8","A.8.20","Seguridad en redes (segmentación, firewalls, IDS/IPS).");
+rowsHtml += itemRow("A.8","A.8.21","Cifrado y gestión de claves criptográficas cuando aplique.");
+rowsHtml += itemRow("A.8","A.8.22","Gestión de copia de seguridad fuera del sitio y restauración segura.");
+rowsHtml += itemRow("A.8","A.8.23","Seguridad en el desarrollo y ciclo de vida seguro del software (SDLC).");
+rowsHtml += itemRow("A.8","A.8.24","Prácticas de codificación segura y revisión de código.");
+rowsHtml += itemRow("A.8","A.8.25","Gestión de vulnerabilidades de aplicaciones y pruebas de seguridad (SAST/DAST).");
+rowsHtml += itemRow("A.8","A.8.26","Protección contra ataques de denegación de servicio y mitigaciones.");
+rowsHtml += itemRow("A.8","A.8.27","Seguridad en el acceso remoto y teletrabajo (VPN, túneles seguros).");
+rowsHtml += itemRow("A.8","A.8.28","Control y protección del acceso a APIs y servicios expuestos.");
+rowsHtml += itemRow("A.8","A.8.29","Políticas y controles de copia, sincronización y compartición de archivos.");
+rowsHtml += itemRow("A.8","A.8.30","Gestión de identidades y accesos (IAM) integrada.");
+rowsHtml += itemRow("A.8","A.8.31","Pruebas de penetración y ejercicios de red team/blue team según riesgo.");
+rowsHtml += itemRow("A.8","A.8.32","Protección de entornos en la nube y seguridad para servicios cloud.");
+rowsHtml += itemRow("A.8","A.8.33","Gestión segura de bases de datos y control de accesos a datos.");
+rowsHtml += itemRow("A.8","A.8.34","Prevención y respuesta ante fugas de información y exfiltración.");
+
+  // fecha y hora
+  const ahora = new Date();
+  const fecha = ahora.toLocaleDateString("es-CO");
+  const hora = ahora.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", hour12: true });
+
+  // render del modulo
+  contenedor.innerHTML = `
+    <div class="mt-5">
+      <h2 class="fw-bold text-center">Modulo del Auditor ISO/IEC 27001</h2>
+      <p class="text-center mb-4">Checklist del SGSI (Capitulos 4 - 10)</p>
+
+      <div class="d-flex justify-content-center mb-4 gap-3">
+        <div>
+          <label class="form-label fw-bold">Fecha:</label>
+          <input type="text" class="form-control" value="${fecha}" readonly>
+        </div>
+        <div>
+          <label class="form-label fw-bold">Hora de inicio:</label>
+          <input type="text" class="form-control" value="${hora}" readonly>
+        </div>
+      </div>
+
+      <div class="text-center mb-3">
+        <label for="filtro27001" class="form-label fw-bold">Filtrar por estado:</label>
+        <select id="filtro27001" class="form-select d-inline-block w-auto ms-2">
+          <option value="todos">Todos</option>
+          <option value="Cumple">Cumple</option>
+          <option value="En proceso">En proceso</option>
+          <option value="No cumple">No cumple</option>
+        </select>
+        <button id="btnReiniciar27001" class="btn btn-danger btn-sm ms-3">Reiniciar checklist</button>
+      </div>
+
+      <div class="table-responsive">
+        <table id="tabla27001" class="table table-bordered table-striped align-middle">
+          <thead class="table-primary text-center">
+            <tr>
+              <th>Cap.</th>
+              <th>Item</th>
+              <th>Requisito</th>
+              <th>Estado</th>
+              <th>Observaciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbody27001">
+            ${rowsHtml}
+          </tbody>
+        </table>S
+      </div>
+
+      <div class="text-center">
+        <button class="btn btn-success mt-3" id="btnExport27001">Descargar Informe</button>
+      </div>
+      <div class="text-center mt-2">
+        <button class="btn btn-outline-primary" onclick="mostrarDashboard27001()">Ir al Dashboard</button>
+
+      </div>
+
+      <div class="text-center mt-4 small text-muted">Disenado por RPM</div>
+    </div>
+  `;
+
+  // restaurar estados/obs y listeners
+  const estados = cargarEstados();
+  const obs = cargarObs();
+
+  document.querySelectorAll("#tbody27001 .estado-select").forEach(function(sel){
+    const k = sel.getAttribute("data-item");
+    if (estados[k]) sel.value = estados[k];
+    pintarIndicador(sel);
+    sel.addEventListener("change", function(){
+      estados[k] = sel.value || "";
+      guardarEstados(estados);
+      pintarIndicador(sel);
+      aplicarFiltro(); // respeta filtro activo
+    });
+  });
+
+  document.querySelectorAll("#tbody27001 .obs-input").forEach(function(inp){
+    const k = inp.getAttribute("data-item");
+    if (Object.prototype.hasOwnProperty.call(obs, k)) inp.value = obs[k];
+    inp.addEventListener("input", function(){
+      obs[k] = inp.value;
+      guardarObs(obs);
+    });
+  });
+
+  // filtro
+  const filtro = document.getElementById("filtro27001");
+  function aplicarFiltro(){
+    const val = filtro.value;
+    document.querySelectorAll("#tbody27001 tr").forEach(function(row){
+      const sel = row.querySelector(".estado-select");
+      if (!sel) { row.style.display = ""; return; } // filas de capitulo
+      const v = sel.value || "";
+      row.style.display = (val === "todos" || val === v) ? "" : "none";
+    });
+  }
+  filtro.addEventListener("change", aplicarFiltro);
+
+  // reinicio
+  document.getElementById("btnReiniciar27001").addEventListener("click", function(){
+    document.querySelectorAll("#tbody27001 .estado-select").forEach(function(sel){
+      sel.value = "";
+      pintarIndicador(sel);
+    });
+    document.querySelectorAll("#tbody27001 .obs-input").forEach(function(inp){
+      inp.value = "";
+    });
+    filtro.value = "todos";
+    aplicarFiltro();
+    guardarEstados({});
+    guardarObs({});
+  });
+
+  // exportar
+  document.getElementById("btnExport27001").addEventListener("click", function(){
+    const filas = [];
+    filas.push(["Cap.","Item","Requisito","Estado","Observaciones"]);
+    document.querySelectorAll("#tbody27001 tr").forEach(function(row){
+      const c = row.cells;
+      if (!c || c.length < 5) return; // salta filas de capitulo
+      const estado = row.querySelector("select") ? row.querySelector("select").value : "";
+      const obsv = row.querySelector("input") ? row.querySelector("input").value : "";
+      filas.push([c[0].innerText, c[1].innerText, c[2].innerText, estado, obsv]);
+    });
+    const csv = "data:text/csv;charset=utf-8," + filas.map(f => f.map(x => '"'+x.replaceAll('"','""')+'"').join(",")).join("\n");
+    const a = document.createElement("a");
+    a.href = encodeURI(csv);
+    a.download = "checklist_iso27001.csv";
+    a.click();
+  });
+
+  // util: color del indicador
+  function pintarIndicador(selectEl){
+    const indicador = selectEl.parentElement.querySelector(".estado-indicador");
+    const v = selectEl.value;
+    indicador.style.backgroundColor =
+      v === "Cumple" ? "green" :
+      v === "En proceso" ? "orange" :
+      v === "No cumple" ? "red" : "transparent";
+  }
+
+  // aplica filtro inicial
+  aplicarFiltro();
+}
+
+
+function mostrarDashboard27001() {
+  // ---------------- Auditor (Checklist 27001) ----------------
+  let estados = {};
+  try { estados = JSON.parse(localStorage.getItem("iso27001_estados_v1")) || {}; } catch(e) { estados = {}; }
+
+  const valores = Object.values(estados);
+  const totalItems = valores.length;
+  const cntCumple = valores.filter(v => v === "Cumple").length;
+  const cntProceso = valores.filter(v => v === "En proceso").length;
+  const cntNoCumple = valores.filter(v => v === "No cumple").length;
+  const porcentajeCumple = totalItems > 0 ? Math.round((cntCumple / totalItems) * 100) : 0;
+
+  // ---------------- Evidencias (Nuevo módulo) ----------------
+  const evidRaw = localStorage.getItem("evidencias27001");
+  const evid = evidRaw ? JSON.parse(evidRaw) : [];
+  const evidTotal = evid.length;
+  const evidAprobadas = evid.filter(x => x.aprobado === "Aprobado").length;
+  const evidRevision = evid.filter(x => x.estado === "En revisión").length;
+  const evidBorrador = evid.filter(x => x.estado === "Borrador").length;
+
+  contenedor.innerHTML = `
+    <div class="mt-5">
+      <h2 class="fw-bold text-center">Dashboard ISO/IEC 27001</h2>
+      <p class="text-center text-muted mb-4">Resumen del SGSI</p>
+
+      <div class="container">
+        <div class="row g-3">
+
+          <!-- KPI Auditor -->
+          <div class="col-md-4">
+            <div class="card text-center">
+              <div class="card-body">
+                <h6 class="text-muted mb-2">Cumplimiento Auditor</h6>
+                <div class="display-6">${porcentajeCumple}%</div>
+                <small>${cntCumple}/${totalItems} ítems “Cumple”</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI Evidencias -->
+          <div class="col-md-4">
+            <div class="card text-center">
+              <div class="card-body">
+                <h6 class="text-muted mb-2">Evidencias</h6>
+                <div class="display-6">${evidAprobadas}/${evidTotal}</div>
+                <small>Aprobadas</small><br>
+                <small>En revisión: ${evidRevision} | Borrador: ${evidBorrador}</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detalle Auditor -->
+          <div class="col-md-4">
+            <div class="card text-center">
+              <div class="card-body">
+                <h6 class="text-muted mb-2">Checklist Auditor</h6>
+                <div>Cumple: ${cntCumple}</div>
+                <div>En proceso: ${cntProceso}</div>
+                <div>No cumple: ${cntNoCumple}</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Botones para cambiar entre 9001 y 27001 -->
+        <div class="text-center my-4">
+          <div class="btn-group">
+            <button class="btn btn-outline-secondary" onclick="mostrarDashboard()">ISO 9001</button>
+            <button class="btn btn-primary" onclick="mostrarDashboard27001()">ISO 27001</button>
+          </div>
+        </div>
+
+        <!-- Acciones dentro de ISO 27001 -->
+        <div class="text-center">
+          <button class="btn btn-success me-2" onclick="mostrarChecklist27001()">Ver Checklist Auditor</button>
+          <button class="btn btn-warning me-2" onclick="mostrarEvidencias()">Ver Evidencias</button>
+        </div>
+      </div>
+
+      <div class="text-center mt-4 small text-muted autor">Diseñado por RPM</div>
+
+    </div>
+  `;
+}
+
+
+
+    // Pantalla de selección de responsables
+function mostrarResponsables() {
+  contenedor.innerHTML = `
+    <div class="text-center mt-5">
+      <h2 class="fw-bold">Seleccione el responsable</h2>
+      <p class="mb-4">Elija una opción para continuar:</p>
+    </div>
+
+    <div class="d-grid gap-3 col-6 mx-auto">
+      <button class="btn btn-primary" onclick="mostrarImplementador()">Implementador</button>
+      <button class="btn btn-primary" onclick="mostrarCapacitador()">Capacitador</button>
+      <button class="btn btn-primary" onclick="mostrarAuditor()">Auditor</button>
+    </div>
+
+
+    <div class="text-center mt-3">
+      <button class="btn btn-secondary" onclick="mostrarNormas()">Volver</button>
+    </div>
+
+    <div class="text-center mt-4 small text-muted autor">Diseñado por RPM</div>
+
+  `;
+}
+
+
+    // Pantalla del Implementador
+// Pantalla del Implementador con sub-opciones
+function mostrarImplementador() {
+  contenedor.innerHTML = `
+    <div class="text-center mt-5">
+      <h2 class="fw-bold">Módulo del Implementador</h2>
+      <p>Seleccione una opción:</p>
+
+      <div class="d-grid gap-3 col-6 mx-auto">
+        <button class="btn btn-primary" onclick="mostrarChecklistImplementacion()">Checklist de Implementación</button>
+        <button class="btn btn-primary" onclick="mostrarRegistroIncidencias()">Registro de Incidencias</button>
+        <button class="btn btn-primary" onclick="mostrarIntegracion()">Integración con otros módulos</button>
+        <button class="btn btn-primary" onclick="mostrarEvidenciasImplementador()">Gestión documental</button>
+      </div>
+      <div class="mt-4">
+        <button class="btn btn-secondary" onclick="mostrarResponsables()">Volver</button>
+      </div>
+
+      <div class="text-center mt-4 small text-muted autor">Diseñado por RPM</div>
+
+    </div>
+  `;
+}
+
+
+
+function mostrarDashboard() {
+  // Auditor: conteo de estados
+  const estados = cargarAuditorEstados(); // { "4.1": "Cumple", ... }
+  const totalItems = Object.keys(estados).length;
+  const cntCumple = Object.values(estados).filter(v => v === "Cumple").length;
+  const cntProceso = Object.values(estados).filter(v => v === "En proceso").length;
+  const cntNoCumple = Object.values(estados).filter(v => v === "No cumple").length;
+
+  // Capacitador: evidencias
+  const capRaw = localStorage.getItem("evidencias_capacitacion");
+  const cap = capRaw ? JSON.parse(capRaw) : [];
+  const capTotal = cap.length;
+  const capRevisados = cap.filter(x => x.estado === "Revisado").length;
+  const capAprobados = cap.filter(x => x.aprobado === "Aprobado").length;
+
+  // Implementador: documentos
+  const implRaw = localStorage.getItem("evidencias_implementador");
+  const impl = implRaw ? JSON.parse(implRaw) : [];
+  const implTotal = impl.length;
+  const implAprobados = impl.filter(x => x.aprobado === "Aprobado").length;
+
+  // % cumplimiento simple (si no hay datos, 0)
+  const porcentajeCumple = totalItems > 0 ? Math.round((cntCumple / totalItems) * 100) : 0;
+
+  contenedor.innerHTML = `
+    <div class="mt-5">
+      <h2 class="fw-bold text-center">Dashboard General</h2>
+      <p class="text-center text-muted mb-4">Resumen de ISO 9001</p>
+
+      <div class="container">
+        <div class="row g-3">
+          <!-- KPIs Auditor -->
+          <div class="col-md-3">
+            <div class="card text-center">
+              <div class="card-body">
+                <h6 class="text-muted mb-2">Cumplimiento Auditor</h6>
+                <div class="display-6">${porcentajeCumple}%</div>
+                <small>${cntCumple}/${totalItems} ítems “Cumple”</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Capacitador -->
+          <div class="col-md-3">
+            <div class="card text-center">
+              <div class="card-body">
+                <h6 class="text-muted mb-2">Capacitador</h6>
+                <div class="display-6">${capRevisados}/${capTotal}</div>
+                <small>Revisados</small><br/>
+                <small>Aprobados: ${capAprobados}</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Implementador -->
+          <div class="col-md-3">
+            <div class="card text-center">
+              <div class="card-body">
+                <h6 class="text-muted mb-2">Implementador</h6>
+                <div class="display-6">${implAprobados}/${implTotal}</div>
+                <small>Documentos aprobados</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Auditor (detalle) -->
+          <div class="col-md-3">
+            <div class="card text-center">
+              <div class="card-body">
+                <h6 class="text-muted mb-2">Checklist Auditor</h6>
+                <div>Cumple: ${cntCumple}</div>
+                <div>En proceso: ${cntProceso}</div>
+                <div>No cumple: ${cntNoCumple}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Acciones rápidas -->
+        <div class="text-center my-4">
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="mostrarResponsables()">ISO 9001</button>
+            <button class="btn btn-outline-secondary" onclick="mostrarDashboard27001()">ISO 27001</button>
+          </div>
+        </div>
+
+        <div class="text-center">
+          <button class="btn btn-success me-2" onclick="mostrarChecklistAuditor()">Ir a Checklist Auditor</button>
+          <button class="btn btn-info me-2" onclick="mostrarEvidenciasImplementador()">Gestión documental (Implementador)</button>
+          <button class="btn btn-warning" onclick="mostrarCapacitacionEvidencias()">Evidencias (Capacitador)</button>
+        </div>
+      </div>
+
+      <div class="text-center mt-4 small text-muted autor">Diseñado por RPM</div>
+
+    </div>
+  `;
+}
+
+
+// 1️⃣ Checklist de Implementación
+function mostrarChecklistImplementacion() {
+  // Obtener fecha y hora actual
+  const ahora = new Date();
+  const fecha = ahora.toLocaleDateString("es-CO");
+  const hora = ahora.toLocaleTimeString("es-CO", { hour: '2-digit', minute: '2-digit' });
+
+   contenedor.innerHTML = `
+    <div class="mt-5">
+      <h3 class="fw-bold text-center">Checklist de Implementación</h3>
+
+      <!-- Registro de fecha y hora -->
+      <div class="d-flex justify-content-center mb-4 gap-3">
+        <div>
+          <label class="form-label fw-bold">Fecha de implementación:</label>
+          <input type="text" class="form-control" value="${fecha}" readonly>
+        </div>
+        <div>
+          <label class="form-label fw-bold">Hora de inicio:</label>
+          <input type="text" class="form-control" value="${hora}" readonly>
+        </div>
+      </div>
+
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>Proceso</th>
+            <th>Tarea</th>
+            <th>Estado</th>
+            <th>Responsable</th>
+            <th>Fecha límite</th>
+            <th>Observaciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Gestión de calidad</td>
+            <td>Definir procedimientos</td>
+            <td>
+              <select class="form-select">
+                <option>No iniciado</option>
+                <option>En progreso</option>
+                <option>Completado</option>
+              </select>
+            </td>
+            <td><input type="text" class="form-control" placeholder="Nombre"></td>
+            <td><input type="date" class="form-control"></td>
+            <td><input type="text" class="form-control" placeholder="Observaciones"></td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <button class="btn btn-secondary mt-3" onclick="mostrarImplementador()">Volver</button>
+      <div class="text-center mt-2">
+  <button class="btn btn-outline-primary" onclick="mostrarDashboard()">Volver al Dashboard</button>
+</div>
+
+    </div>
+  `;
+}
+
+
+// 2️⃣ Registro de incidencias y acciones correctivas
+function mostrarRegistroIncidencias() {
+  // Obtener fecha y hora actual
+const ahora = new Date();
+  const fecha = ahora.toLocaleDateString("es-CO");
+  const hora = ahora.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", hour12: true });
+
+  contenedor.innerHTML = `
+    <div class="mt-5">
+      <h3 class="fw-bold text-center">Registro de Incidencias</h3>
+
+      <!-- Registro de fecha y hora -->
+      <div class="d-flex justify-content-center mb-4 gap-3">
+        <div>
+          <label class="form-label fw-bold">Fecha de registro:</label>
+          <input type="text" class="form-control" value="${fecha}" readonly>
+        </div>
+        <div>
+          <label class="form-label fw-bold">Hora de registro:</label>
+          <input type="text" class="form-control" value="${hora}" readonly>
+        </div>
+      </div>
+
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Incidencia</th>
+            <th>Acción Correctiva</th>
+            <th>Responsable</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><input type="date" class="form-control"></td>
+            <td><input type="text" class="form-control" placeholder="Describa la incidencia"></td>
+            <td><input type="text" class="form-control" placeholder="Acción correctiva"></td>
+            <td><input type="text" class="form-control" placeholder="Responsable"></td>
+            <td>
+              <select class="form-select">
+                <option>Pendiente</option>
+                <option>En proceso</option>
+                <option>Resuelto</option>
+              </select>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <button class="btn btn-secondary mt-3" onclick="mostrarImplementador()">Volver</button>
+      <div class="text-center mt-2">
+  <button class="btn btn-outline-primary" onclick="mostrarDashboard()">Volver al Dashboard</button>
+</div>
+
+    </div>
+  `;
+}
+
+// 3️⃣ Integración con otros módulos
+function mostrarIntegracion() {
+  // Obtener fecha y hora actual
+const ahora = new Date();
+  const fecha = ahora.toLocaleDateString("es-CO");
+  const hora = ahora.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", hour12: true });
+
+  contenedor.innerHTML = `
+    <div class="mt-5 text-center">
+      <h3 class="fw-bold">Integración con otros módulos</h3>
+      <p>Indique el estado de integración con Capacitador y Auditor:</p>
+
+      <!-- Registro de fecha y hora -->
+      <div class="d-flex justify-content-center mb-4 gap-3">
+        <div>
+          <label class="form-label fw-bold">Fecha de registro:</label>
+          <input type="text" class="form-control" value="${fecha}" readonly>
+        </div>
+        <div>
+          <label class="form-label fw-bold">Hora de registro:</label>
+          <input type="text" class="form-control" value="${hora}" readonly>
+        </div>
+      </div>
+
+      <table class="table table-bordered mx-auto" style="max-width:600px;">
+        <thead>
+          <tr>
+            <th>Módulo</th>
+            <th>Estado</th>
+            <th>Observaciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Capacitador</td>
+            <td>
+              <select class="form-select">
+                <option>No iniciado</option>
+                <option>En proceso</option>
+                <option>Integrado</option>
+              </select>
+            </td>
+            <td><input type="text" class="form-control" placeholder="Observaciones"></td>
+          </tr>
+          <tr>
+            <td>Auditor</td>
+            <td>
+              <select class="form-select">
+                <option>No iniciado</option>
+                <option>En proceso</option>
+                <option>Integrado</option>
+              </select>
+            </td>
+            <td><input type="text" class="form-control" placeholder="Observaciones"></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <button class="btn btn-secondary mt-3" onclick="mostrarImplementador()">Volver</button>
+      <div class="text-center mt-2">
+  <button class="btn btn-outline-primary" onclick="mostrarDashboard()">Volver al Dashboard</button>
+</div>
+
+    </div>
+  `;
+}
+
+const KEY_EVIDENCIAS_IMPL = "evidencias_implementador";
+let evidenciasImpl = [];
+
+function cargarEvidenciasImpl() {
+  try {
+    const raw = localStorage.getItem(KEY_EVIDENCIAS_IMPL);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+function guardarEvidenciasImpl(arr) {
+  localStorage.setItem(KEY_EVIDENCIAS_IMPL, JSON.stringify(arr));
+}
+
+function mostrarEvidenciasImplementador() {
+  evidenciasImpl = cargarEvidenciasImpl();
+
+  contenedor.innerHTML = `
+    <div class="mt-5">
+      <h2 class="fw-bold text-center">Gestión Documental del Implementador</h2>
+      <p class="text-center mb-4">Sube procedimientos, instructivos o registros controlados y gestiona su estado de aprobación.</p>
+
+      <!-- Carga de archivo -->
+      <div class="card col-10 col-lg-8 mx-auto mb-4">
+        <div class="card-body">
+          <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+              <label class="form-label">Documento</label>
+              <input type="file" id="archivoImpl" class="form-control" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Nombre visible</label>
+              <input type="text" id="nombreVisibleImpl" class="form-control" placeholder="Ej: Procedimiento de control de calidad">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Versión</label>
+              <input type="text" id="versionImpl" class="form-control" placeholder="Ej: 1.0">
+            </div>
+            <div class="col-12 text-end">
+              <button class="btn btn-primary" id="btnAgregarImpl">Agregar documento</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla de documentos -->
+      <div class="table-responsive col-12 col-lg-10 mx-auto">
+        <table class="table table-bordered align-middle" id="tablaImpl">
+          <thead class="table-primary text-center">
+            <tr>
+              <th style="min-width:200px;">Documento</th>
+              <th>Versión</th>
+              <th>Estado</th>
+              <th>Aprobación</th>
+              <th style="min-width:220px;">Observaciones</th>
+              <th>Fecha / Hora</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${evidenciasImpl.map((e, idx) => filaImplHTML(e, idx)).join("")}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="text-center mt-3">
+        <button class="btn btn-secondary" onclick="mostrarImplementador()">Volver</button>
+      </div>
+      <div class="text-center mt-2">
+  <button class="btn btn-outline-primary" onclick="mostrarDashboard()">Volver al Dashboard</button>
+</div>
+
+
+      <div class="text-center mt-4 small text-muted autor">Diseñado por RPM</div>
+
+    </div>
+  `;
+
+  document.getElementById("btnAgregarImpl").addEventListener("click", onAgregarImpl);
+  document.querySelector("#tablaImpl tbody").addEventListener("change", onTablaImplChange);
+  document.querySelector("#tablaImpl tbody").addEventListener("click", onTablaImplClick);
+}
+
+function filaImplHTML(e, idx) {
+  return `
+    <tr data-index="${idx}">
+      <td>${e.url ? `<a href="${e.url}" target="_blank">${escapeHTML(e.nombre)}</a>` : escapeHTML(e.nombre)}</td>
+      <td class="text-center">${escapeHTML(e.version)}</td>
+      <td>
+        <select class="form-select sel-estado">
+          <option value="Borrador" ${e.estado === "Borrador" ? "selected" : ""}>Borrador</option>
+          <option value="En revisión" ${e.estado === "En revisión" ? "selected" : ""}>En revisión</option>
+          <option value="Aprobado" ${e.estado === "Aprobado" ? "selected" : ""}>Aprobado</option>
+        </select>
+      </td>
+      <td>
+        <select class="form-select sel-aprob">
+          <option value="No aprobado" ${e.aprobado === "No aprobado" ? "selected" : ""}>No aprobado</option>
+          <option value="Aprobado" ${e.aprobado === "Aprobado" ? "selected" : ""}>Aprobado</option>
+        </select>
+      </td>
+      <td><input type="text" class="form-control inp-obs" value="${escapeHTML(e.obs || "")}" placeholder="Observaciones..."></td>
+      <td class="text-center">
+        <div>${escapeHTML(e.fecha)}</div>
+        <div class="small text-muted">${escapeHTML(e.hora)}</div>
+      </td>
+      <td class="text-center">
+        <button class="btn btn-sm btn-outline-danger btn-del">Eliminar</button>
+      </td>
+    </tr>
+  `;
+}
+
+function onAgregarImpl() {
+  const fileInput = document.getElementById("archivoImpl");
+  const nombreVisible = document.getElementById("nombreVisibleImpl").value.trim();
+  const version = document.getElementById("versionImpl").value.trim();
+
+  if (!fileInput.files || fileInput.files.length === 0) {
+    alert("Seleccione un archivo para continuar.");
+    return;
+  }
+
+  const file = fileInput.files[0];
+  const url = URL.createObjectURL(file);
+
+  const ahora = new Date();
+  const fecha = ahora.toLocaleDateString("es-CO");
+  const hora = ahora.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", hour12: true });
+
+  const doc = {
+    nombre: nombreVisible || file.name,
+    url,
+    version: version || "1.0",
+    estado: "Borrador",
+    aprobado: "No aprobado",
+    obs: "",
+    fecha,
+    hora
+  };
+
+  evidenciasImpl.push(doc);
+  guardarEvidenciasImpl(evidenciasImpl);
+  document.querySelector("#tablaImpl tbody").insertAdjacentHTML("beforeend", filaImplHTML(doc, evidenciasImpl.length - 1));
+
+  fileInput.value = "";
+  document.getElementById("nombreVisibleImpl").value = "";
+  document.getElementById("versionImpl").value = "";
+}
+
+function onTablaImplChange(e) {
+  const tr = e.target.closest("tr[data-index]");
+  if (!tr) return;
+  const idx = parseInt(tr.getAttribute("data-index"), 10);
+  if (Number.isNaN(idx)) return;
+
+  if (e.target.classList.contains("sel-estado")) {
+    evidenciasImpl[idx].estado = e.target.value;
+  }
+  if (e.target.classList.contains("sel-aprob")) {
+    evidenciasImpl[idx].aprobado = e.target.value;
+  }
+  if (e.target.classList.contains("inp-obs")) {
+    evidenciasImpl[idx].obs = e.target.value;
+  }
+
+  guardarEvidenciasImpl(evidenciasImpl);
+}
+
+function onTablaImplClick(e) {
+  if (!e.target.classList.contains("btn-del")) return;
+  const tr = e.target.closest("tr[data-index]");
+  const idx = parseInt(tr.getAttribute("data-index"), 10);
+  if (Number.isNaN(idx)) return;
+
+  if (confirm("¿Eliminar este documento?")) {
+    if (evidenciasImpl[idx].url) {
+      try { URL.revokeObjectURL(evidenciasImpl[idx].url); } catch {}
+    }
+    evidenciasImpl.splice(idx, 1);
+    guardarEvidenciasImpl(evidenciasImpl);
+    mostrarEvidenciasImplementador();
+  }
+}
+
+// Escapar texto para evitar HTML en celdas
+function escapeHTML(str) {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+
+// MÓDULO CAPACITADOR (menú)
+
+function mostrarCapacitador() {
+  contenedor.innerHTML = `
+    <div class="text-center mb-3 mt-5">
+      <h2 class="fw-bold">Módulo del Capacitador</h2>
+      <p class="mb-4">Seleccione un apartado:</p>
+    </div>
+
+    <div class="d-grid gap-2 col-6 mx-auto">
+      <button class="btn btn-primary" onclick="mostrarObjetivos()">Objetivos</button>
+      <button class="btn btn-primary" onclick="mostrarPHVA()">Ciclo PHVA</button>
+      <button class="btn btn-primary" onclick="mostrarOrganizacion()">Organización</button>
+      <button class="btn btn-primary" onclick="mostrarLiderazgo()">Liderazgo</button>
+      <button class="btn btn-primary" onclick="mostrarPlanificacion()">Planificación</button>
+      <button class="btn btn-primary" onclick="mostrarApoyo()">Apoyo</button>
+      <button class="btn btn-primary" onclick="mostrarOperacion()">Operación</button>
+      <button class="btn btn-primary" onclick="mostrarDesempeno()">Desempeño</button>
+      <button class="btn btn-primary" onclick="mostrarMejora()">Mejora</button>
+      <button class="btn btn-primary" onclick="mostrarIntroVideoCapacitador()">Subir/gestionar documentos</button>
+    </div>
+
+    <div class="text-center mt-3">
+      <button class="btn btn-secondary" onclick="mostrarResponsables()">Volver</button>
+    </div>
+
+    <div class="text-center mt-4 small text-muted autor">Diseñado por RPM</div>
+
+  `;
+}
+
+// 🔗 Video de YouTube para el Capacitador
+const VIDEO_CAP_URL = "https://youtu.be/tsajVWg7JC0";
+
+// Pantalla intermedia: muestra el video y un botón "Continuar"
+function mostrarIntroVideoCapacitador() {
+  contenedor.innerHTML = `
+    <div class="mt-5">
+      <h2 class="fw-bold text-center">Capacitador – Subir/gestionar documentos</h2>
+      <p class="text-center mb-3">Antes de continuar, revisa este video:</p>
+
+      <div class="col-11 col-lg-8 mx-auto">
+        <div class="card mb-3">
+          <div class="card-body">
+            <p class="mb-2">
+              <a href="${VIDEO_CAP_URL}" target="_blank" rel="noopener">
+                🔗 Ver en YouTube
+              </a>
+            </p>
+            <div class="ratio ratio-16x9">
+              <iframe
+                src="https://www.youtube.com/embed/tsajVWg7JC0"
+                title="Video de capacitación"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen
+              ></iframe>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-center d-flex justify-content-center gap-2">
+          <button class="btn btn-primary" id="btnContinuarCap">Continuar</button>
+          <button class="btn btn-outline-secondary" onclick="mostrarCapacitador()">Volver</button>
+        </div>
+
+        <div class="text-center mt-4 small text-muted autor">Diseñado por RPM</div>
+
+      </div>
+    </div>
+  `;
+
+  // Al pulsar continuar, muestra el gestor de documentos
+  document.getElementById("btnContinuarCap").addEventListener("click", () => {
+    // Si quieres que no vuelva a mostrar el video, descomenta la siguiente línea:
+    // sessionStorage.setItem("cap_video_visto", "1");
+    mostrarCapacitacionEvidencias();
+  });
+}
+
+
+// =======================================
+// CAPACITADOR: SUBIR / GESTIONAR DOCUMENTOS
+// =======================================
+
+// Clave de almacenamiento
+const KEY_EVIDENCIAS_CAP = "evidencias_capacitacion";
+
+// Estado en memoria
+let evidenciasCap = [];
+
+// Utilidades de storage
+function cargarEvidenciasCap() {
+  try {
+    const raw = localStorage.getItem(KEY_EVIDENCIAS_CAP);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+function guardarEvidenciasCap(arr) {
+  localStorage.setItem(KEY_EVIDENCIAS_CAP, JSON.stringify(arr));
+}
+
+// Render principal del submódulo
+function mostrarCapacitacionEvidencias() {
+  evidenciasCap = cargarEvidenciasCap();
+
+  contenedor.innerHTML = `
+    <div class="mt-5">
+      <h2 class="fw-bold text-center">Capacitación – Gestión de Evidencias</h2>
+      <p class="text-center mb-4">Sube documentos (manuales, guías, comprobantes, etc.) y gestiona su revisión/aprobación.</p>
+
+      <!-- Carga de archivo -->
+      <div class="card col-10 col-lg-8 mx-auto mb-4">
+        <div class="card-body">
+          <div class="row g-3 align-items-end">
+            <div class="col-md-6">
+              <label class="form-label">Documento</label>
+              <input type="file" id="archivoCap" class="form-control" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Nombre visible (opcional)</label>
+              <input type="text" id="nombreVisibleCap" class="form-control" placeholder="Ej: Guía de uso del formato SMART">
+            </div>
+            <div class="col-12 text-end">
+              <button class="btn btn-primary" id="btnAgregarEvidencia">Agregar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla de evidencias -->
+      <div class="table-responsive col-12 col-lg-10 mx-auto">
+        <table class="table table-bordered align-middle" id="tablaEvidenciasCap">
+          <thead class="table-primary text-center">
+            <tr>
+              <th style="min-width:220px;">Documento</th>
+              <th>Estado</th>
+              <th>Aprobación</th>
+              <th style="min-width:220px;">Observaciones</th>
+              <th style="min-width:140px;">Fecha/Hora</th>
+              <th style="min-width:120px;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${evidenciasCap.map((e, idx) => filaEvidenciaHTML(e, idx)).join("")}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="text-center mt-3">
+        <button class="btn btn-secondary" onclick="mostrarCapacitador()">Volver</button>
+        <div class="text-center mt-2">
+  <button class="btn btn-outline-primary" onclick="mostrarDashboard()">Volver al Dashboard</button>
+</div>
+
+      </div>
+
+      <div class="text-center mt-4 small text-muted autor">Diseñado por RPM</div>
+
+    </div>
+  `;
+
+  // Listeners
+  document.getElementById("btnAgregarEvidencia").addEventListener("click", onAgregarEvidencia);
+  // Delegación de eventos para cambios en selects/observaciones/borrar
+  document.querySelector("#tablaEvidenciasCap tbody").addEventListener("change", onTablaChange);
+  document.querySelector("#tablaEvidenciasCap tbody").addEventListener("click", onTablaClick);
+}
+
+// Plantilla de fila de la tabla
+function filaEvidenciaHTML(e, idx) {
+  return `
+    <tr data-index="${idx}">
+      <td>
+        ${e.url
+          ? `<a href="${e.url}" target="_blank" rel="noopener">${escapeHTML(e.nombre)}</a>`
+          : `<span>${escapeHTML(e.nombre)}</span>`}
+      </td>
+      <td>
+        <select class="form-select sel-estado">
+          <option value="No revisado" ${e.estado === "No revisado" ? "selected" : ""}>No revisado</option>
+          <option value="Revisado" ${e.estado === "Revisado" ? "selected" : ""}>Revisado</option>
+        </select>
+      </td>
+      <td>
+        <select class="form-select sel-aprobacion">
+          <option value="No aprobado" ${e.aprobado === "No aprobado" ? "selected" : ""}>No aprobado</option>
+          <option value="Aprobado" ${e.aprobado === "Aprobado" ? "selected" : ""}>Aprobado</option>
+        </select>
+      </td>
+      <td>
+        <input type="text" class="form-control inp-obs" value="${escapeHTML(e.observaciones || "")}" placeholder="Observaciones..." />
+      </td>
+      <td class="text-center">
+        <div>${escapeHTML(e.fecha)}</div>
+        <div class="small text-muted">${escapeHTML(e.hora)}</div>
+      </td>
+      <td class="text-center">
+        <button class="btn btn-sm btn-outline-danger btn-borrar">Eliminar</button>
+      </td>
+    </tr>
+  `;
+}
+
+// Agregar evidencia (desde input file)
+function onAgregarEvidencia() {
+  const inputFile = document.getElementById("archivoCap");
+  const nombreVisible = document.getElementById("nombreVisibleCap").value.trim();
+
+  if (!inputFile.files || inputFile.files.length === 0) {
+    alert("Selecciona un archivo para continuar.");
+    return;
+  }
+
+  const file = inputFile.files[0];
+
+  // URL local temporal (no sube a servidor; funciona en esta sesión)
+  const url = URL.createObjectURL(file);
+
+  // Fecha/hora local (Colombia)
+  const ahora = new Date();
+  const fecha = ahora.toLocaleDateString("es-CO");
+  const hora = ahora.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", hour12: true });
+
+  const evidencia = {
+    nombre: nombreVisible || file.name,
+    url,
+    estado: "No revisado",
+    aprobado: "No aprobado",
+    observaciones: "",
+    fecha,
+    hora
+  };
+
+  evidenciasCap.push(evidencia);
+  guardarEvidenciasCap(evidenciasCap);
+
+  // Agregar fila al DOM
+  const tbody = document.querySelector("#tablaEvidenciasCap tbody");
+  tbody.insertAdjacentHTML("beforeend", filaEvidenciaHTML(evidencia, evidenciasCap.length - 1));
+
+  // Limpiar inputs
+  inputFile.value = "";
+  document.getElementById("nombreVisibleCap").value = "";
+}
+
+// Manejar cambios (estado / aprobación / observaciones)
+function onTablaChange(e) {
+  const tr = e.target.closest("tr[data-index]");
+  if (!tr) return;
+  const idx = parseInt(tr.getAttribute("data-index"), 10);
+  if (Number.isNaN(idx)) return;
+
+  if (e.target.classList.contains("sel-estado")) {
+    evidenciasCap[idx].estado = e.target.value;
+  }
+  if (e.target.classList.contains("sel-aprobacion")) {
+    evidenciasCap[idx].aprobado = e.target.value;
+  }
+  if (e.target.classList.contains("inp-obs")) {
+    evidenciasCap[idx].observaciones = e.target.value;
+  }
+
+  guardarEvidenciasCap(evidenciasCap);
+}
+
+// Manejar clicks (eliminar)
+function onTablaClick(e) {
+  if (!e.target.classList.contains("btn-borrar")) return;
+  const tr = e.target.closest("tr[data-index]");
+  if (!tr) return;
+  const idx = parseInt(tr.getAttribute("data-index"), 10);
+  if (Number.isNaN(idx)) return;
+
+  if (confirm("¿Eliminar esta evidencia?")) {
+    // liberar URL temporal si existía
+    if (evidenciasCap[idx].url) {
+      try { URL.revokeObjectURL(evidenciasCap[idx].url); } catch {}
+    }
+    evidenciasCap.splice(idx, 1);
+    guardarEvidenciasCap(evidenciasCap);
+    // Re-render para reindexar
+    mostrarCapacitacionEvidencias();
+  }
+}
+
+// Utilidad: escapar HTML básico
+function escapeHTML(str) {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+// 🔹 Submenú de Objetivos con los links
+function mostrarObjetivos() {
+  contenedor.innerHTML = `
+    <div class="mt-5">
+      <h2 class="fw-bold text-center">Objetivos</h2>
+      <p class="text-center mb-4">Seleccione un documento:</p>
+      <ul class="list-group col-6 mx-auto">
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1entrTfrmBxHAU8Ywvt1S9wK7dVYZh9_N/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Objetivos e indicadores SMART
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1XniTslEk8lZa9YUe85y1eAFgSZPy2yX1/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Objetivos de calidad
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1Sr4zFh03GQb8A2a5bDnLpV-ACNldc4ai/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Plantilla indicadores de desempeño
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1P8P16b7bfJpJ8XM7_e7TlZ13OpWXr1AY/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Indicadores por área funcional
+          </a>
+        </li>
+      </ul>
+      <div class="text-center mt-3">
+        <button class="btn btn-secondary" onclick="mostrarCapacitador()">Volver</button>
+      </div>
+    </div>
+  `;
+}
+
+// 🔹 Submenú de Ciclo PHVA con los links
+function mostrarPHVA() {
+  contenedor.innerHTML = `
+    <div class="mt-5">
+      <h2 class="fw-bold text-center">Ciclo PHVA</h2>
+      <p class="text-center mb-4">Seleccione un documento:</p>
+      <ul class="list-group col-6 mx-auto">
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1cL-6QGqe8S6wwxnR_65dPYaV4Zq9Tb03/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Seguimiento, medición, análisis y evaluación
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1MAg9-xN9qXd1BvsEqwnGfK3jzivJinPb/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Matriz de riesgo
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1vL6cfh3qpTiIKu3hM1uC4WukDoRjRMs2/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Acta cambio proyecto
+          </a>
+        </li>
+      </ul>
+      <div class="text-center mt-3">
+        <button class="btn btn-secondary" onclick="mostrarCapacitador()">Volver</button>
+      </div>
+    </div>
+  `;
+}
+
+// 🔹 Submenú de Organización con los links
+function mostrarOrganizacion() {
+  contenedor.innerHTML = `
+    <div class="mt-5">
+      <h2 class="fw-bold text-center">Organización</h2>
+      <p class="text-center mb-4">Seleccione un documento:</p>
+      <ul class="list-group col-6 mx-auto">
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1jz-yk2hImMcfMzcBMqBj74KtM7kltn6G/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Plantilla alcance
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1Ayb2tqj2zNF874XjjvZuya_ilMRVSD8D/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Plantilla de procesos
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1DT1aQQhtfX6La8N8JfC0PJ01p2K6PaLX/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Organigrama
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1QZgRalKW2N1DzX-9e-ChzmbPZN0AIoXs/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Plantilla partes interesadas
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1eW0hRVbcv57UO8ZFyYDEzIXGNyVXX9Gt/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Matriz FODA
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1ccPMywtiuAqWPjAZ9vAzDI6jc3DakxBw/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Plantilla PESTAL
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1eGf4oSNb_AlqFdZvtKhBLIk5t7wRxXuV/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Plantilla 5 fuerzas de Porter
+          </a>
+        </li>
+      </ul>
+      <div class="text-center mt-3">
+        <button class="btn btn-secondary" onclick="mostrarCapacitador()">Volver</button>
+      </div>
+    </div>
+  `;
+}
+
+// 🔹 Submenú de Liderazgo con los links
+function mostrarLiderazgo() {
+  contenedor.innerHTML = `
+    <div class="mt-5">
+      <h2 class="fw-bold text-center">Liderazgo</h2>
+      <p class="text-center mb-4">Seleccione un documento:</p>
+      <ul class="list-group col-6 mx-auto">
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1sG1avjS4WoB0ADtnmw-tgULmqmet520d/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Checklist liderazgo actual
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/19pURueHpINBIfK03MUGkPmJ_iHmQwjMO/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Plantilla política de calidad
+          </a>
+        </li>
+      </ul>
+      <div class="text-center mt-3">
+        <button class="btn btn-secondary" onclick="mostrarCapacitador()">Volver</button>
+      </div>
+    </div>
+  `;
+}
+
+// 🔹 Submenú de Planificación con los links
+function mostrarPlanificacion() {
+  contenedor.innerHTML = `
+    <div class="mt-5">
+      <h2 class="fw-bold text-center">Planificación</h2>
+      <p class="text-center mb-4">Seleccione un documento:</p>
+      <ul class="list-group col-6 mx-auto">
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1aztCrro79KUyeYgthdjdx85Q8MhV_Pq9/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Planificación de los cambios
+          </a>
+        </li>
+      </ul>
+      <div class="text-center mt-3">
+        <button class="btn btn-secondary" onclick="mostrarCapacitador()">Volver</button>
+      </div>
+    </div>
+  `;
+}
+
+// 🔹 Submenú de Apoyo con los links
+function mostrarApoyo() {
+  contenedor.innerHTML = `
+    <div class="mt-5">
+      <h2 class="fw-bold text-center">Apoyo</h2>
+      <p class="text-center mb-4">Seleccione un documento:</p>
+      <ul class="list-group col-8 mx-auto">
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1UpolpMvh8kXauJhwM5KvBzHRk3hbSb2n/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Medición de condiciones psicosociales
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1kXmoTtscwtDid1tZvanAxj8pcIfCsleA/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Medición de condiciones físicas
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/12Z5LPfT3kQR0d2YonSiIKdtPZ-tw6-9W/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Formato competencia
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1mIZB0OdlUfkYxO0PQUF3VvEHKmj98TSi/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Formato toma de conciencia
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1KnlH9-ecw3XN0QD8B9U5o3R30njfG3sw/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Formato información documentada
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/11K10uK2uI9PfccFSygo8NIr5s4-H2LkQ/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Control de infraestructura
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/14M9qrpy1m3rb-h_AVcuDTtKwd57PYAuc/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Formato recursos de seguimiento y medición
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://drive.google.com/file/d/1C3pgSQ4NyEoy1bYE4SaueouND9aJdf2e/view?usp=sharing" target="_blank">
+            📄 PDF gestión del conocimiento
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1ot6-ajF3ntLkKWwVXhP89IuJDDr___w3/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Plantilla requerimiento de personal
+          </a>
+        </li>
+      </ul>
+      <div class="text-center mt-3">
+        <button class="btn btn-secondary" onclick="mostrarCapacitador()">Volver</button>
+      </div>
+    </div>
+  `;
+}
+
+// 🔹 Submenú de Operación con los links
+function mostrarOperacion() {
+  contenedor.innerHTML = `
+    <div class="mt-5">
+      <h2 class="fw-bold text-center">Operación</h2>
+      <p class="text-center mb-4">Seleccione un documento:</p>
+      <ul class="list-group col-8 mx-auto">
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1f1H01pJ-3vRvb2xBN6K4QNjCv31QOw0L/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Planificación y control operacional
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1v5zAP9tK-BH7kk-OO_L79zAgs5eB2A4p/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Requisitos para los productos y servicios
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1xgvfhOccUXNx2qam_6ZLmZblrV656lPR/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Control de los procesos externos
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/18fN5cS-CcvB1GgP-npSorGATSfMD3u12/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Identificación y trazabilidad
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1zZoxmPL0yS0Gm-w6KgE5NxOrhTLrbGP_/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Liberación de los productos y servicios
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1ldhyVlG924Gf3B9UuVAltgu1wu4G85aa/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Control de salidas no conformes
+          </a>
+        </li>
+      </ul>
+      <div class="text-center mt-3">
+        <button class="btn btn-secondary" onclick="mostrarCapacitador()">Volver</button>
+      </div>
+    </div>
+  `;
+}
+
+// 🔹 Submenú de Desempeño con los links
+function mostrarDesempeno() {
+  contenedor.innerHTML = `
+    <div class="mt-5">
+      <h2 class="fw-bold text-center">Desempeño</h2>
+      <p class="text-center mb-4">Seleccione un documento:</p>
+      <ul class="list-group col-8 mx-auto">
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1cL-6QGqe8S6wwxnR_65dPYaV4Zq9Tb03/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Seguimiento, medición, análisis y evaluación
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1Sr4zFh03GQb8A2a5bDnLpV-ACNldc4ai/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Plantilla indicadores de desempeño
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1P8P16b7bfJpJ8XM7_e7TlZ13OpWXr1AY/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 Multiplantilla indicadores por área funcional
+          </a>
+        </li>
+      </ul>
+      <div class="text-center mt-3">
+        <button class="btn btn-secondary" onclick="mostrarCapacitador()">Volver</button>
+      </div>
+    </div>
+  `;
+}
+
+// 🔹 Submenú de Mejora con el enlace de 10.2 No conformidad y acción correctiva
+function mostrarMejora() {
+  contenedor.innerHTML = `
+    <div class="mt-5">
+      <h2 class="fw-bold text-center">Mejora</h2>
+      <p class="text-center mb-4">Seleccione un documento:</p>
+      <ul class="list-group col-8 mx-auto">
+        <li class="list-group-item">
+          <a href="https://docs.google.com/spreadsheets/d/1IOwHprWTNb-bPzsTG4X7yxLXdERm-B1l/edit?usp=sharing&ouid=115465540193721348792&rtpof=true&sd=true" target="_blank">
+            📄 10.2 No conformidad y acción correctiva
+          </a>
+        </li>
+      </ul>
+      <div class="text-center mt-3">
+        <button class="btn btn-secondary" onclick="mostrarCapacitador()">Volver</button>
+      </div>
+    </div>
+  `;
+}
+
+function mostrarAuditor() {
+  contenedor.innerHTML = `
+    <div class="mt-5">
+      <h2 class="fw-bold text-center">Registro del SGC (ISO 9001)</h2>
+      <p class="text-center mb-4">Complete los datos antes de continuar al checklist:</p>
+
+      <form id="formAuditor" class="col-8 mx-auto">
+        <div class="row g-3">
+          <div class="col-md-6"><label class="form-label">Razón social</label><input id="rzAuditor" type="text" class="form-control" required></div>
+          <div class="col-md-6"><label class="form-label">NIT</label><input id="nitAuditor" type="text" class="form-control" required></div>
+          <div class="col-md-6"><label class="form-label">Representante legal</label><input id="repAuditor" type="text" class="form-control" required></div>
+          <div class="col-md-6"><label class="form-label">Sector económico</label><input id="secAuditor" type="text" class="form-control" required></div>
+          <div class="col-md-6"><label class="form-label">Tipo de empresa</label><input id="tipoAuditor" type="text" class="form-control" required></div>
+          <div class="col-md-6"><label class="form-label">Dirección</label><input id="dirAuditor" type="text" class="form-control" required></div>
+          <div class="col-md-6"><label class="form-label">Teléfono</label><input id="telAuditor" type="tel" class="form-control" required></div>
+          <div class="col-md-6"><label class="form-label">Número de empleados</label><input id="empAuditor" type="number" class="form-control" required></div>
+          <div class="col-md-6"><label class="form-label">Email</label><input id="mailAuditor" type="email" class="form-control" required></div>
+          <div class="col-md-6"><label class="form-label">Sitio web</label><input id="webAuditor" type="url" class="form-control"></div>
+          <div class="col-md-4"><label class="form-label">Facebook</label><input id="fbAuditor" type="url" class="form-control"></div>
+          <div class="col-md-4"><label class="form-label">Instagram</label><input id="igAuditor" type="url" class="form-control"></div>
+          <div class="col-md-4"><label class="form-label">TikTok</label><input id="tkAuditor" type="url" class="form-control"></div>
+        </div>
+
+        <div class="text-center mt-4">
+          <button type="submit" class="btn btn-primary">Registrar</button>
+        </div>
+      </form>
+
+      <div class="text-center mt-3">
+        <button class="btn btn-secondary" onclick="mostrarResponsables()">Volver</button>
+      </div>
+      <div class="text-center mt-4 small text-muted autor">Diseñado por RPM</div>
+    </div>
+  `;
+
+  // Manejo del submit
+  document.getElementById("formAuditor").addEventListener("submit", async function(e){
+    e.preventDefault();
+
+    const data = {
+      razon_social: document.getElementById("rzAuditor").value.trim().substring(0,150),
+      nit: document.getElementById("nitAuditor").value.trim().substring(0,30),
+      representante: document.getElementById("repAuditor").value.trim().substring(0,120),
+      sector: document.getElementById("secAuditor").value.trim().substring(0,120),
+      tipo: document.getElementById("tipoAuditor").value.trim().substring(0,100),
+      direccion: document.getElementById("dirAuditor").value.trim().substring(0,200),
+      telefono: document.getElementById("telAuditor").value.trim().substring(0,30),
+      empleados: parseInt(document.getElementById("empAuditor").value.trim()) || 0,
+      email: document.getElementById("mailAuditor").value.trim().substring(0,120),
+      web: document.getElementById("webAuditor").value.trim().substring(0,200),
+      facebook: document.getElementById("fbAuditor").value.trim().substring(0,200),
+      instagram: document.getElementById("igAuditor").value.trim().substring(0,200),
+      tiktok: document.getElementById("tkAuditor").value.trim().substring(0,200)
+    };
+
+    try {
+      const response = await fetch('http://localhost:3000/api/9001/registro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert('Registro guardado correctamente en MySQL!');
+        localStorage.setItem("iso9001_registro", JSON.stringify(data));
+        mostrarChecklist9001(); // avanzar al checklist
+      } else {
+        alert('No se pudo guardar el registro: ' + result.message);
+      }
+    } catch (err) {
+      console.error('Error fetch:', err);
+      alert('Error en la comunicación con el servidor.');
+    }
+  });
+}
+
+
+
+    // Pantalla del Auditor con checklist
+function mostrarChecklistAuditor() {
+  // ⏱️ Fecha/hora local (Colombia)
+  const ahora = new Date();
+  const fecha = ahora.toLocaleDateString("es-CO");
+  const hora = ahora.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", hour12: true });
+
+  contenedor.innerHTML = `
+    <div class="mt-5">
+      <h2 class="fw-bold text-center">Módulo del Auditor</h2>
+      <p class="text-center mb-4">Checklist ISO 9001:2015 (Capítulo 4.1 – 10.3)</p>
+
+      <!-- Registro de fecha y hora -->
+      <div class="d-flex justify-content-center mb-4 gap-3">
+        <div>
+          <label class="form-label fw-bold">Fecha de la auditoría:</label>
+          <input type="text" class="form-control" value="${fecha}" readonly>
+        </div>
+        <div>
+          <label class="form-label fw-bold">Hora de inicio:</label>
+          <input type="text" class="form-control" value="${hora}" readonly>
+        </div>
+      </div>
+
+      <!-- Filtro por estado -->
+      <div class="text-center mb-3">
+        <label for="filtroEstado" class="form-label fw-bold">Filtrar por estado:</label>
+        <select id="filtroEstado" class="form-select d-inline-block w-auto ms-2">
+          <option value="todos">Todos</option>
+          <option value="Cumple">Cumple</option>
+          <option value="En proceso">En proceso</option>
+          <option value="No cumple">No cumple</option>
+        </select>
+        <button id="btnReiniciar" class="btn btn-danger btn-sm ms-3">Reiniciar checklist</button>
+      </div>
+      
+      <div class="table-responsive">
+        <table id="tablaAuditor" class="table table-bordered table-striped align-middle">
+          <thead class="table-primary text-center">
+            <tr>
+              <th>Cap.</th>
+              <th>Ítem</th>
+              <th>Requisito</th>
+              <th>Estado</th>
+              <th>Observaciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- CAPÍTULO 4 -->
+            <tr><td>4</td><td>4.1</td><td>¿Se han identificado factores internos y externos?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+            <tr><td>4</td><td>4.2</td><td>¿Se han identificado las partes interesadas relevantes?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+            <tr><td>4</td><td>4.3</td><td>¿Se ha definido el alcance del SGC?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+            <tr><td>4</td><td>4.4</td><td>¿Se han establecido los procesos necesarios del SGC?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+
+            <!-- CAPÍTULO 5 -->
+            <tr><td>5</td><td>5.1</td><td>¿La alta dirección demuestra liderazgo y compromiso?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+            <tr><td>5</td><td>5.2</td><td>¿Se ha definido y comunicado la política de calidad?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+            <tr><td>5</td><td>5.3</td><td>¿Se han definido roles, responsabilidades y autoridades?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+
+            <!-- CAPÍTULO 6 -->
+            <tr><td>6</td><td>6.1</td><td>¿Se han identificado riesgos y oportunidades?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+            <tr><td>6</td><td>6.2</td><td>¿Se han establecido objetivos de calidad medibles?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+            <tr><td>6</td><td>6.3</td><td>¿Se planifican los cambios del SGC de manera controlada?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+
+            <!-- CAPÍTULO 7 -->
+            <tr><td>7</td><td>7.1</td><td>¿Se dispone de los recursos necesarios para el SGC?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+            <tr><td>7</td><td>7.2</td><td>¿Se evalúan competencias y capacitaciones?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+            <tr><td>7</td><td>7.3</td><td>¿El personal es consciente de la política y objetivos?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+            <tr><td>7</td><td>7.4</td><td>¿La comunicación interna y externa es adecuada?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+            <tr><td>7</td><td>7.5</td><td>¿La información documentada está controlada?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+
+            <!-- CAPÍTULO 8 -->
+            <tr><td>8</td><td>8.1</td><td>¿Se planifican y controlan los procesos operativos?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+            <tr><td>8</td><td>8.2</td><td>¿Se determinan los requisitos del cliente?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+            <tr><td>8</td><td>8.3</td><td>¿Se realiza diseño y desarrollo cuando aplica?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+            <tr><td>8</td><td>8.4</td><td>¿Se controlan los proveedores y compras?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+            <tr><td>8</td><td>8.5</td><td>¿Se controla la producción y prestación del servicio?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+            <tr><td>8</td><td>8.6</td><td>¿Se liberan productos y servicios conforme requisitos?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+            <tr><td>8</td><td>8.7</td><td>¿Se gestionan las no conformidades en la entrega?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+
+            <!-- CAPÍTULO 9 -->
+            <tr><td>9</td><td>9.1</td><td>¿Se realiza seguimiento, medición y análisis del SGC?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+            <tr><td>9</td><td>9.1.2</td><td>¿Se mide la satisfacción del cliente?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+            <tr><td>9</td><td>9.2</td><td>¿Se realizan auditorías internas documentadas?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+            <tr><td>9</td><td>9.3</td><td>¿La dirección realiza revisiones del SGC?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+
+            <!-- CAPÍTULO 10 -->
+            <tr><td>10</td><td>10.2</td><td>¿Se gestionan las no conformidades y acciones correctivas?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+            <tr><td>10</td><td>10.3</td><td>¿Se busca la mejora continua del SGC?</td><td>${estado()}</td><td>${observaciones()}</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Botón de exportar -->
+      <div class="text-center">
+        <button class="btn btn-success mt-3" onclick="exportarChecklist()">Descargar Informe</button>
+      </div>
+
+      <div class="text-center mt-2">
+        <button class="btn btn-outline-primary" onclick="mostrarDashboard()">Volver al Dashboard</button>
+      </div>
+
+      <div class="text-center mt-4 small text-muted autor">Diseñado por RPM</div>
+
+    </div>
+  `;
+
+  // ===== Helpers internos =====
+  const KEY_AUDITOR_ESTADOS = "auditor_estados_v1";
+  const KEY_AUDITOR_OBS = "auditor_obs_v1";
+  const cargarAuditorEstados = () => { try { return JSON.parse(localStorage.getItem(KEY_AUDITOR_ESTADOS)) || {}; } catch { return {}; } };
+  const guardarAuditorEstados = (obj) => localStorage.setItem(KEY_AUDITOR_ESTADOS, JSON.stringify(obj));
+  const cargarAuditorObs = () => { try { return JSON.parse(localStorage.getItem(KEY_AUDITOR_OBS)) || {}; } catch { return {}; } };
+  const guardarAuditorObs = (obj) => localStorage.setItem(KEY_AUDITOR_OBS, JSON.stringify(obj));
+
+  const setIndicadorColor = (selectEl) => {
+    const indicador = selectEl.parentElement.querySelector(".estado-indicador");
+    const v = selectEl.value;
+    indicador.style.backgroundColor =
+      v === "Cumple" ? "green" :
+      v === "En proceso" ? "orange" :
+      v === "No cumple" ? "red" : "transparent";
+  };
+
+  // Asignar data-item (usa la columna "Ítem")
+  document.querySelectorAll("#tablaAuditor tbody tr").forEach(row => {
+    const item = row.cells[1]?.textContent?.trim(); // ej: "4.1"
+    const select = row.querySelector(".estado-select");
+    const inputObs = row.querySelector("input.form-control");
+    if (item && select) select.dataset.item = item;
+    if (item && inputObs) inputObs.dataset.item = item;
+  });
+
+  // Restaurar datos guardados
+  const estadosGuardados = cargarAuditorEstados();
+  const obsGuardadas = cargarAuditorObs();
+
+  document.querySelectorAll(".estado-select").forEach(select => {
+    const item = select.dataset.item;
+    if (item && estadosGuardados[item]) {
+      select.value = estadosGuardados[item];
+    }
+    setIndicadorColor(select);
+  });
+
+  document.querySelectorAll("#tablaAuditor tbody input.form-control").forEach(inp => {
+    const item = inp.dataset.item;
+    if (item && obsGuardadas[item] != null) {
+      inp.value = obsGuardadas[item];
+    }
+  });
+
+  // Colores + guardado en cambios
+  document.querySelectorAll(".estado-select").forEach(select => {
+    select.addEventListener("change", function () {
+      setIndicadorColor(this);
+      const item = this.dataset.item;
+      const estados = cargarAuditorEstados();
+      estados[item] = this.value || "";
+      guardarAuditorEstados(estados);
+      aplicarFiltro(); // re-aplica filtro activo
+    });
+  });
+
+  document.querySelectorAll("#tablaAuditor tbody input.form-control").forEach(inp => {
+    inp.addEventListener("input", function () {
+      const item = this.dataset.item;
+      const obs = cargarAuditorObs();
+      obs[item] = this.value;
+      guardarAuditorObs(obs);
+    });
+  });
+
+  // Filtro por estado
+  const filtro = document.getElementById("filtroEstado");
+  const aplicarFiltro = () => {
+    const val = filtro.value;
+    document.querySelectorAll("#tablaAuditor tbody tr").forEach(row => {
+      const select = row.querySelector(".estado-select");
+      if (!select) return;
+      const estado = select.value || "";
+      row.style.display = (val === "todos" || val === estado) ? "" : "none";
+    });
+  };
+  filtro.addEventListener("change", aplicarFiltro);
+
+  // Reiniciar checklist (UI + almacenamiento)
+  document.getElementById("btnReiniciar").addEventListener("click", () => {
+    // limpiar selects + colores
+    document.querySelectorAll(".estado-select").forEach(select => {
+      select.value = "";
+      setIndicadorColor(select);
+    });
+    // limpiar observaciones
+    document.querySelectorAll("#tablaAuditor tbody input.form-control").forEach(inp => inp.value = "");
+    // mostrar todas las filas y reset filtro
+    document.getElementById("filtroEstado").value = "todos";
+    aplicarFiltro();
+    // limpiar storage
+    guardarAuditorEstados({});
+    guardarAuditorObs({});
+  });
+
+
+
+    // 🎨 Colores en los estados
+  document.querySelectorAll(".estado-select").forEach(select => {
+    select.addEventListener("change", function () {
+      const indicador = this.parentElement.querySelector(".estado-indicador");
+      if (this.value === "Cumple") {
+        indicador.style.backgroundColor = "green";
+      } else if (this.value === "En proceso") {
+        indicador.style.backgroundColor = "orange";
+      } else if (this.value === "No cumple") {
+        indicador.style.backgroundColor = "red";
+      } else {
+        indicador.style.backgroundColor = "transparent";
+      }
+    });
+  });
+
+  // 🔎 Filtro dinámico
+  document.getElementById("filtroEstado").addEventListener("change", function () {
+    const filtro = this.value;
+    document.querySelectorAll("#tablaAuditor tbody tr").forEach(row => {
+      const select = row.querySelector(".estado-select");
+      if (!select) return;
+      const valor = select.value;
+      row.style.display = (filtro === "todos" || filtro === valor) ? "" : "none";
+    });
+  });
+
+  // 🔄 Botón de reinicio
+  document.getElementById("btnReiniciar").addEventListener("click", function () {
+    document.querySelectorAll(".estado-select").forEach(select => {
+      select.value = ""; // Vuelve a "Seleccione..."
+      const indicador = select.parentElement.querySelector(".estado-indicador");
+      if (indicador) indicador.style.backgroundColor = "transparent";
+    });
+    document.querySelectorAll("#tablaAuditor tbody tr").forEach(row => {
+      row.style.display = ""; // Muestra todas las filas
+    });
+    document.getElementById("filtroEstado").value = "todos"; // Reinicia el filtro
+  });
+}
+
+// Función auxiliar para select con indicador
+function estado() {
+  return `
+    <div class="d-flex align-items-center gap-2">
+      <select class="form-select estado-select">
+        <option value="">Seleccione...</option>
+        <option value="Cumple">Cumple</option>
+        <option value="En proceso">En proceso</option>
+        <option value="No cumple">No cumple</option>
+      </select>
+      <span class="estado-indicador" style="width:20px; height:20px; border-radius:50%; display:inline-block; border:1px solid #ccc;"></span>
+    </div>
+  `;
+}
+
+// Función auxiliar para observaciones
+function observaciones() {
+  return `<input type="text" class="form-control" placeholder="Escriba observaciones...">`;
+}
+
+
+
+// Función para exportar checklist a CSV
+function exportarChecklist() {
+  const filas = [];
+  const tabla = document.querySelector("table tbody").rows;
+
+  filas.push(["Cap.", "Ítem", "Requisito", "Estado", "Observaciones"]);
+
+  for (let row of tabla) {
+    const cap = row.cells[0].innerText;
+    const item = row.cells[1].innerText;
+    const req = row.cells[2].innerText;
+    const estadoSelect = row.querySelector("select");
+    const estado = estadoSelect ? estadoSelect.value : "";
+    const obsInput = row.querySelector("input");
+    const observaciones = obsInput ? obsInput.value : "";
+    filas.push([cap, item, req, estado, observaciones]);
+  }
+
+  let csvContent = "data:text/csv;charset=utf-8," 
+    + filas.map(e => e.map(campo => `"${campo}"`).join(",")).join("\n");
+
+  const link = document.createElement("a");
+  link.setAttribute("href", encodeURI(csvContent));
+  link.setAttribute("download", "informe_auditoria.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+
+
+    // Mostrar login al cargar
+    mostrarLogin();
+  </script>
+
+</body>
+</html>
