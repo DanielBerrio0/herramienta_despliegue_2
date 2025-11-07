@@ -256,7 +256,7 @@ function mostrarEvidencias() {
 
       <div class="text-center mt-3">
         <button class="btn btn-secondary me-2" onclick="mostrarISO27001()">Volver</button>
-        <button class="btn btn-outline-primary" onclick="mostrarDashboard27001()">Volver al Dashboard</button>
+        <button class="btn btn-primary" onclick="mostrarDashboard27001()">Volver al Dashboard</button>
       </div>
 
       <div class="text-center mt-4 small text-muted autor">Diseñado por RPM</div>
@@ -428,7 +428,7 @@ function mostrarRegistro27001() {
 
         <div class="text-center mt-4 d-flex justify-content-center gap-2">
           <button type="submit" class="btn btn-primary">Registrar y continuar</button>
-          <button type="button" class="btn btn-outline-secondary" onclick="mostrarISO27001()">Volver</button>
+          <button class="btn btn-secondary me-2" onclick="mostrarISO27001()">Volver</button>
         </div>
       </form>
 
@@ -695,7 +695,7 @@ rowsHtml += itemRow("A.8","A.8.34","Prevención y respuesta ante fugas de inform
         <button class="btn btn-success mt-3" id="btnExport27001">Descargar Informe</button>
       </div>
       <div class="text-center mt-2">
-        <button class="btn btn-outline-primary" onclick="mostrarDashboard27001()">Ir al Dashboard</button>
+        <button class="btn btn-primary" onclick="mostrarDashboard27001()">Ir al Dashboard</button>
 
       </div>
 
@@ -812,7 +812,7 @@ function mostrarDashboard27001() {
   contenedor.innerHTML = `
     <div class="mt-5">
       <h2 class="fw-bold text-center">Dashboard ISO/IEC 27001</h2>
-      <p class="text-center text-muted mb-4">Resumen del SGSI</p>
+      <p class="text-center text-white mb-4">Resumen del SGSI</p>
 
       <div class="container">
         <div class="row g-3">
@@ -955,8 +955,7 @@ function mostrarDashboard() {
   contenedor.innerHTML = `
     <div class="mt-5">
       <h2 class="fw-bold text-center">Dashboard General</h2>
-      <p class="text-center text-muted mb-4">Resumen de ISO 9001</p>
-
+      <p class="text-center text-white mb-4">Resumen de ISO 9001</p>
       <div class="container">
         <div class="row g-3">
           <!-- KPIs Auditor -->
@@ -1081,9 +1080,9 @@ function mostrarChecklistImplementacion() {
       </table>
       
       <button class="btn btn-secondary mt-3" onclick="mostrarImplementador()">Volver</button>
-      <div class="text-center mt-2">
-  <button class="btn btn-outline-primary" onclick="mostrarDashboard()">Volver al Dashboard</button>
-</div>
+    <div class="text-center mt-2">
+  <button class="btn btn-primary" onclick="mostrarDashboard()">Volver al Dashboard</button>
+    </div>
 
     </div>
   `;
@@ -1142,7 +1141,7 @@ const ahora = new Date();
       
       <button class="btn btn-secondary mt-3" onclick="mostrarImplementador()">Volver</button>
       <div class="text-center mt-2">
-  <button class="btn btn-outline-primary" onclick="mostrarDashboard()">Volver al Dashboard</button>
+  <button class="btn btn-primary" onclick="mostrarDashboard()">Volver al Dashboard</button>
 </div>
 
     </div>
@@ -1209,7 +1208,7 @@ const ahora = new Date();
 
       <button class="btn btn-secondary mt-3" onclick="mostrarImplementador()">Volver</button>
       <div class="text-center mt-2">
-  <button class="btn btn-outline-primary" onclick="mostrarDashboard()">Volver al Dashboard</button>
+  <button class="btn btn-primary" onclick="mostrarDashboard()">Volver al Dashboard</button>
 </div>
 
     </div>
@@ -1286,7 +1285,7 @@ function mostrarEvidenciasImplementador() {
         <button class="btn btn-secondary" onclick="mostrarImplementador()">Volver</button>
       </div>
       <div class="text-center mt-2">
-  <button class="btn btn-outline-primary" onclick="mostrarDashboard()">Volver al Dashboard</button>
+  <button class="btn btn-primary" onclick="mostrarDashboard()">Volver al Dashboard</button>
 </div>
 
 
@@ -2092,7 +2091,7 @@ function mostrarAuditor() {
       if (result.success) {
         alert('Registro guardado correctamente en MySQL!');
         localStorage.setItem("iso9001_registro", JSON.stringify(data));
-        mostrarChecklist9001(); // avanzar al checklist
+        mostrarChecklistAuditor(); // avanzar al checklist
       } else {
         alert('No se pudo guardar el registro: ' + result.message);
       }
@@ -2204,7 +2203,7 @@ function mostrarChecklistAuditor() {
       </div>
 
       <div class="text-center mt-2">
-        <button class="btn btn-outline-primary" onclick="mostrarDashboard()">Volver al Dashboard</button>
+        <button class="btn btn-primary" onclick="mostrarDashboard()">Volver al Dashboard</button>
       </div>
 
       <div class="text-center mt-4 small text-muted autor">Diseñado por RPM</div>
