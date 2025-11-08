@@ -41,24 +41,16 @@ function createApp() {
     // --- API Root ---
     app.get('/', (req, res) => {
         res.json({
-            api: 'ISO Tool Backend API',
+            api: 'Herramienta Despliegue - ISO Tool API',
             author: 'DanielBerrio0',
-            description: 'API RESTful con Express, MySQL y JWT para gestión de certificaciones ISO 9001 y 27001.',
+            description: 'API RESTful con Node.js, Express, MySQL2 y arquitectura modular para gestión de certificaciones ISO 9001 y 27001.',
+            version: '2.0.0',
             endpoints: {
                 'GET /': 'Información de la API',
                 'GET /health': 'Health check',
-                'POST /api/login': 'Login y obtención de JWT',
-                'POST /api/register': 'Registro de usuario',
-                'GET /api/9001': 'Endpoints de gestión ISO 9001',
-                'POST /api/9001': 'Crear registro ISO 9001',
-                'GET /api/9001/:id': 'Obtener registro ISO 9001 por ID',
-                'PUT /api/9001/:id': 'Actualizar registro ISO 9001',
-                'DELETE /api/9001/:id': 'Eliminar registro ISO 9001',
-                'GET /api/27001': 'Endpoints de gestión ISO 27001',
-                'POST /api/27001': 'Crear registro ISO 27001',
-                'GET /api/27001/:id': 'Obtener registro ISO 27001 por ID',
-                'PUT /api/27001/:id': 'Actualizar registro ISO 27001',
-                'DELETE /api/27001/:id': 'Eliminar registro ISO 27001'
+                'POST /api/login': 'Login de usuarios',
+                'POST /api/9001/registro': 'Crear registro ISO 9001',
+                'POST /api/27001/registro27001': 'Crear registro ISO 27001'
             },
             repository: 'https://github.com/DanielBerrio0/herramienta_despliegue_2',
             status: 'OK'
