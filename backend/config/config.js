@@ -1,4 +1,28 @@
 // config/config.js
+
+// Parsear DATABASE_URL o MYSQL_PUBLIC_URL si existe (para Railway)
+const parseDatabaseUrl = () => {
+    const dbUrl = process.env.DATABASE_URL || process.env.MYSQL_PUBLIC_URL;
+    
+    if (dbUrl) {
+        // Formato: mysql://user:password@host:port/database
+        const match = dbUrl.match(/mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)/);
+        if (match) {
+            return {
+                host: match[3],
+                port: parseInt(match[4]),
+                user: match[1],
+                password: match[2],
+                database: match[5]
+            };
+        }
+    }
+    
+    return null;
+};
+
+const dbFromUrl = parseDatabaseUrl();
+
 module.exports = {
     // Configuración del servidor
     PORT: process.env.PORT || 3000,
@@ -6,11 +30,11 @@ module.exports = {
     
     // Configuración de la base de datos
     DB_CONFIG: {
-        host: process.env.DB_HOST || 'localhost',
-        port: process.env.DB_PORT || 3306,
-        user: process.env.DB_USER || 'root',
-        password: process.env.DB_PASSWORD || 'root',
-        database: process.env.DB_NAME || 'iso_tool',
+        host: dbFromUrl?.host || process.env.DB_HOST || 'localhost',
+        port: dbFromUrl?.port || process.env.DB_PORT || 3306,
+        user: dbFromUrl?.user || process.env.DB_USER || 'root',
+        password: dbFromUrl?.password || process.env.DB_PASSWORD || 'root',
+        database: dbFromUrl?.database || process.env.DB_NAME || 'iso_tool',
         waitForConnections: true,
         connectionLimit: 10,
         queueLimit: 0
