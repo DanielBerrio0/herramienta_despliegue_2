@@ -4,6 +4,10 @@
 // Cargar variables de entorno lo primero
 require('dotenv').config();
 
+console.log('🔧 Iniciando aplicación...');
+console.log('🌍 RAILWAY_ENVIRONMENT:', process.env.RAILWAY_ENVIRONMENT || 'NO DETECTADO');
+console.log('🔑 MYSQL_PUBLIC_URL:', process.env.MYSQL_PUBLIC_URL ? 'PRESENTE' : 'NO PRESENTE');
+
 const createApp = require('./app');
 const config = require('./config/config');
 
