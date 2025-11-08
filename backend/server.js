@@ -7,6 +7,7 @@ const config = require('./config/config');
 const app = createApp();
 
 // Iniciar el servidor
+// Actualizado para aplicar variables de entorno de Railway
 if (require.main === module) {
     app.listen(config.PORT, config.HOST, () => {
         console.log('='.repeat(50));
