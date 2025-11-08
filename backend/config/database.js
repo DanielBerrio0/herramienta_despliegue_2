@@ -6,16 +6,25 @@ let pool = null;
 
 const initDatabase = () => {
     if (!pool) {
+        console.log('🔧 Configuración MySQL:', {
+            host: config.DB_CONFIG.host,
+            port: config.DB_CONFIG.port,
+            user: config.DB_CONFIG.user,
+            database: config.DB_CONFIG.database
+        });
+        
         pool = mysql.createPool(config.DB_CONFIG);
         
-        // Verificación de conexión
+        // Verificación de conexión sin forzar cierre
         pool.getConnection()
-            .then(() => {
+            .then((connection) => {
                 console.log('✅ Conexión a MySQL exitosa');
+                connection.release();
             })
             .catch(err => {
-                console.error('❌ Error al conectar a MySQL:', err);
-                process.exit(1);
+                console.error('❌ Error al conectar a MySQL:', err.message);
+                console.error('🔍 Código de error:', err.code);
+                console.error('💡 Verifica que las variables DB_HOST, DB_USER, DB_PASSWORD, DB_NAME estén correctas');
             });
     }
     return pool;
