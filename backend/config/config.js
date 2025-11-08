@@ -5,9 +5,11 @@ const parseDatabaseUrl = () => {
     const dbUrl = process.env.DATABASE_URL || process.env.MYSQL_PUBLIC_URL;
     
     if (dbUrl) {
+        console.log('🔍 Parseando DATABASE_URL:', dbUrl ? 'encontrada' : 'no encontrada');
         // Formato: mysql://user:password@host:port/database
         const match = dbUrl.match(/mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)/);
         if (match) {
+            console.log('✅ URL parseada exitosamente');
             return {
                 host: match[3],
                 port: parseInt(match[4]),
@@ -18,10 +20,14 @@ const parseDatabaseUrl = () => {
         }
     }
     
+    console.log('⚠️  No se encontró DATABASE_URL, usando variables individuales o defaults');
     return null;
 };
 
 const dbFromUrl = parseDatabaseUrl();
+
+// Detectar si estamos en Railway (Railway siempre setea RAILWAY_ENVIRONMENT)
+const isRailway = !!process.env.RAILWAY_ENVIRONMENT;
 
 module.exports = {
     // Configuración del servidor
@@ -30,11 +36,11 @@ module.exports = {
     
     // Configuración de la base de datos
     DB_CONFIG: {
-        host: dbFromUrl?.host || process.env.DB_HOST || 'localhost',
-        port: dbFromUrl?.port || process.env.DB_PORT || 3306,
+        host: dbFromUrl?.host || process.env.DB_HOST || (isRailway ? 'nozomi.proxy.rlwy.net' : 'localhost'),
+        port: dbFromUrl?.port || parseInt(process.env.DB_PORT) || (isRailway ? 14570 : 3306),
         user: dbFromUrl?.user || process.env.DB_USER || 'root',
-        password: dbFromUrl?.password || process.env.DB_PASSWORD || 'root',
-        database: dbFromUrl?.database || process.env.DB_NAME || 'iso_tool',
+        password: dbFromUrl?.password || process.env.DB_PASSWORD || (isRailway ? 'lFzMLKxyMpyQGOIIDhtwiWGfMRPkAxUO' : 'root'),
+        database: dbFromUrl?.database || process.env.DB_NAME || (isRailway ? 'railway' : 'iso_tool'),
         waitForConnections: true,
         connectionLimit: 10,
         queueLimit: 0
