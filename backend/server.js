@@ -1,29 +1,23 @@
-const express = require('express');
-const cors = require('cors');
-const app = express();
-const PORT = 3000;
+// server.js
+// Punto de entrada principal - Similar al if __name__ == "__main__" de Python
+const createApp = require('./app');
+const config = require('./config/config');
 
-// Conexión a MySQL y rutas
-const db = require('./db/db');           
-const authRoutes = require('./routes/auth'); 
-const registro27001Routes = require('./routes/registro27001'); // nueva ruta para ISO 27001
-const registro9001Routes = require('./routes/registro9001');   // nueva ruta para ISO 9001
+// Crear instancia de la aplicación
+const app = createApp();
 
-// Middleware
-app.use(cors());          // Habilita CORS para todos los orígenes
-app.use(express.json());  // Parsear JSON
+// Iniciar el servidor
+if (require.main === module) {
+    app.listen(config.PORT, config.HOST, () => {
+        console.log('='.repeat(50));
+        console.log('🚀 Servidor ISO Tool iniciado');
+        console.log('='.repeat(50));
+        console.log(`📍 URL: http://localhost:${config.PORT}`);
+        console.log(`🌐 Host: ${config.HOST}`);
+        console.log(`⏰ Fecha: ${new Date().toISOString()}`);
+        console.log('='.repeat(50));
+    });
+}
 
-// Rutas
-app.use('/api', authRoutes);
-app.use('/api/27001', registro27001Routes);  // endpoints para ISO 27001
-app.use('/api/9001', registro9001Routes);    // endpoints para ISO 9001
-
-// Ruta de prueba
-app.get('/', (req, res) => {
-  res.send('Servidor funcionando correctamente ✅');
-});
-
-// Inicio del servidor
-app.listen(PORT, () => {
-  console.log(`Servidor iniciado en http://localhost:${PORT}`);
-});
+// Exportar para pruebas o uso externo (similar a crear app para Gunicorn)
+module.exports = app;

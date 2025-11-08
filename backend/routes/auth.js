@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../db/db'); // pool directamente
+const { getPool } = require('../config/database');
 const crypto = require('crypto');
 
 // Ruta para login
@@ -17,6 +17,7 @@ router.post('/login', async (req, res) => {
   const query = 'SELECT * FROM usuarios WHERE username = ? AND password_hash = ? LIMIT 1';
 
   try {
+    const pool = getPool();
     const [results] = await pool.execute(query, [username, hashedPassword]);
 
     if (results.length === 1) {

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../db/db'); // nuestro pool de MySQL
+const { getPool } = require('../config/database');
 
 // Ruta POST para guardar registro ISO 9001 (sin auth por ahora)
 router.post('/registro', async (req, res) => {
@@ -32,6 +32,7 @@ router.post('/registro', async (req, res) => {
       creado_por
     ];
 
+    const pool = getPool();
     const [result] = await pool.query(
       `INSERT INTO registro9001
        (razon_social, nit, representante_legal, sector_economico, tipo_empresa,

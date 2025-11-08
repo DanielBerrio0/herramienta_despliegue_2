@@ -1,15 +1,20 @@
 {
   "name": "herramienta_despliegue",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "API REST para gestión de certificaciones ISO 9001 y 27001",
+  "main": "backend/server.js",
   "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node backend/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["api", "rest", "iso", "mysql", "express"],
+  "author": "DanielBerrio0",
   "license": "ISC",
   "type": "commonjs",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^5.1.0",
