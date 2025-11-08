@@ -1,5 +1,9 @@
 // server.js
 // Punto de entrada principal - Similar al if __name__ == "__main__" de Python
+
+// Cargar variables de entorno lo primero
+require('dotenv').config();
+
 const createApp = require('./app');
 const config = require('./config/config');
 
